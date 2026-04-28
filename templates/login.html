@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Нэвтрэх{% endblock %}
+{% block content %}
+<div class="auth-box">
+  <h2>Нэвтрэх</h2>
+  <form method="POST" action="{{ url_for('auth.login') }}">
+    <div class="form-group">
+      <label>И-мэйл</label>
+      <input type="email" name="email" required placeholder="email@example.com">
+    </div>
+    <div class="form-group">
+      <label>Нууц үг</label>
+      <input type="password" name="nuuts_ug" required>
+    </div>
+    <button type="submit" class="btn-primary">Нэвтрэх</button>
+  </form>
+</div>
+{% endblock %}

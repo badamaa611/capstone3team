@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Нүүр хуудас{% endblock %}
+{% block content %}
+<div class="hero">
+  <h1>Улсын шалгалтад бэлд</h1>
+  <p>Blueprint-ийн дагуу рандом тест, AI дэмжлэгтэй дасгал</p>
+  <div class="grade-cards">
+    <div class="grade-card" onclick="location.href='/auth/login'">
+      <span class="grade-num">5</span>
+      <span>дугаар анги</span>
+      <small>3 хичээл</small>
+    </div>
+    <div class="grade-card" onclick="location.href='/auth/login'">
+      <span class="grade-num">9</span>
+      <span>дугаар анги</span>
+      <small>6 хичээл</small>
+    </div>
+    <div class="grade-card" onclick="location.href='/auth/login'">
+      <span class="grade-num">12</span>
+      <span>дугаар анги</span>
+      <small>10 хичээл</small>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Багшийн хэсэг{% endblock %}
+{% block content %}
+<div class="teacher-panel">
+  <h2>Багшийн хяналтын самбар</h2>
+  <div class="panel-grid">
+    <div class="panel-card">
+      <h3>📝 Тест үүсгэх</h3>
+      <select id="t-angi"><option>5</option><option>9</option><option>12</option></select>
+      <select id="t-hicheel"><option>Биологи</option></select>
+      <input type="number" id="t-too" value="30" min="10" max="50">
+      <button class="btn-primary" onclick="generateTest()">Тест үүсгэх</button>
+    </div>
+    <div class="panel-card">
+      <h3>📊 Сурагчдын явц</h3>
+      <div id="students-list"><!-- DB-ээс татна --></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
