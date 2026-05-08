@@ -1,43 +1,114 @@
 from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
+from extensions import db
+from models import Question, TestSession, TestAnswer, WeakTopic
 import random
+from datetime import datetime
 
 test_bp = Blueprint("test", __name__)
 
 @test_bp.route("/test/generate")
 @login_required
 def generate_test():
-    """
-    Blueprint-ийн харьцаагаар рандом тест үүсгэх
-    GET /api/test/generate?angi=12&hicheel=Биологи&too=30
-    """
     angi    = request.args.get("angi", "12")
     hicheel = request.args.get("hicheel", "")
     too     = int(request.args.get("too", 30))
 
     # Blueprint харьцаа: 27% мэдлэг, 53% чадвар, 20% хэрэглээ
-    medleg  = round(too * 0.27)
-    chadwar = round(too * 0.53)
-    heregel = too - medleg - chadwar
+    medleg_too  = round(too * 0.27)
+    chadwar_too = round(too * 0.53)
+    heregel_too = too - medleg_too - chadwar_too
 
-    # TODO: DB-ээс татах
-    # questions = Question.query.filter_by(angi=angi, hicheel=hicheel)...
+    def get_questions(tuwshin, count):
+        q = Question.query.filter_by(
+            angi=angi, hicheel=hicheel, tuwshin=tuwshin
+        ).all()
+        return random.sample(q, min(count, len(q)))
+
+    asuultuud = (
+        get_questions(1, medleg_too) +
+        get_questions(2, chadwar_too) +
+        get_questions(3, heregel_too)
+    )
+    random.shuffle(asuultuud)
+
+    # Тестийн сесс үүсгэх
+    session = TestSession(
+        suragch_id=current_user.id,
+        angi=angi, hicheel=hicheel, too=len(asuultuud)
+    )
+    db.session.add(session)
+    db.session.commit()
+
     return jsonify({
+        "session_id": session.id,
         "angi": angi,
         "hicheel": hicheel,
-        "niit": too,
-        "huwiari": {"medleg": medleg, "chadwar": chadwar, "heregel": heregel},
-        "asuultuud": []  # DB холбосны дараа дүүргэнэ
+        "niit": len(asuultuud),
+        "asuultuud": [q.to_dict() for q in asuultuud]
     })
 
 @test_bp.route("/test/submit", methods=["POST"])
 @login_required
 def submit_test():
-    """
-    Тестийн хариулт илгээх
-    POST /api/test/submit
-    Body: { session_id, answers: [{question_id, hariult}] }
-    """
-    data = request.get_json()
-    # TODO: хариулт шалгаж, алдаатай сэдвийг бүртгэх
-    return jsonify({"status": "ok", "onoo": 0})
+    data       = request.get_json()
+    session_id = data.get("session_id")
+    answers    = data.get("answers", {})  # {question_id: hariult}
+
+    session = TestSession.query.get(session_id)
+    if not session:
+        return jsonify({"error": "Session олдсонгүй"}), 404
+
+    onoo = 0
+    sul_sedewnuud = {}
+
+    for q_id_str, hariult in answers.items():
+        q = Question.query.get(int(q_id_str))
+        if not q:
+            continue
+        zuw = (hariult == q.zow_hariult)
+        if zuw:
+            onoo += 1
+        else:
+            # Сул сэдэв бүртгэх
+            key = (q.hicheel, q.sedew)
+            sul_sedewnuud[key] = sul_sedewnuud.get(key, 0) + 1
+
+        answer = TestAnswer(
+            session_id=session_id,
+            question_id=q.id,
+            ogson_hariult=hariult,
+            zuw_esehuu=zuw
+        )
+        db.session.add(answer)
+
+    # WeakTopic шинэчлэх
+    for (hicheel, sedew), aldaa in sul_sedewnuud.items():
+        wt = WeakTopic.query.filter_by(
+            suragch_id=current_user.id,
+            hicheel=hicheel, sedew=sedew
+        ).first()
+        if wt:
+            wt.aldaa_too += aldaa
+            wt.updated = datetime.utcnow()
+        else:
+            wt = WeakTopic(
+                suragch_id=current_user.id,
+                hicheel=hicheel, sedew=sedew, aldaa_too=aldaa
+            )
+            db.session.add(wt)
+
+    session.niit_onoo  = onoo
+    session.duusah_tsag = datetime.utcnow()
+    db.session.commit()
+
+    sul_list = [
+        {"hicheel": h, "sedew": s, "aldaa": a}
+        for (h, s), a in sul_sedewnuud.items()
+    ]
+    return jsonify({
+        "onoo": onoo,
+        "niit": len(answers),
+        "huvi": round(onoo / len(answers) * 100) if answers else 0,
+        "sul_sedewnuud": sul_list
+    })

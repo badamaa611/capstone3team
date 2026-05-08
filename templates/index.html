@@ -1,25 +1,122 @@
-{% extends "base.html" %}
-{% block title %}Нүүр хуудас{% endblock %}
-{% block content %}
-<div class="hero">
-  <h1>Улсын шалгалтад бэлд</h1>
-  <p>Blueprint-ийн дагуу рандом тест, AI дэмжлэгтэй дасгал</p>
-  <div class="grade-cards">
-    <div class="grade-card" onclick="location.href='/auth/login'">
-      <span class="grade-num">5</span>
-      <span>дугаар анги</span>
-      <small>3 хичээл</small>
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Шалгалтын Бэлтгэл</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <style>
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 100;
+      justify-content: center; align-items: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #fff; border-radius: 16px;
+      padding: 2rem; width: 360px; max-width: 90%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .modal h3 { color: #1e3a5f; margin-bottom: 1.2rem; font-size: 1.2rem; }
+    .hicheel-btn {
+      display: block; width: 100%; text-align: left;
+      padding: 0.7rem 1rem; margin-bottom: 0.5rem;
+      border: 2px solid #e5e7eb; border-radius: 10px;
+      background: #f9fafb; cursor: pointer; font-size: 1rem;
+      transition: all 0.15s;
+    }
+    .hicheel-btn:hover { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
+    .modal-close {
+      margin-top: 0.5rem; width: 100%; padding: 0.6rem;
+      border: none; border-radius: 8px; background: #e5e7eb;
+      cursor: pointer; font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">📚 Шалгалтын Бэлтгэл</div>
+    <div class="nav-links">
+      {% if current_user.is_authenticated %}
+        <span>{{ current_user.ner }}</span>
+        <a href="{{ url_for('auth.logout') }}">Гарах</a>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}">Нэвтрэх</a>
+      {% endif %}
     </div>
-    <div class="grade-card" onclick="location.href='/auth/login'">
-      <span class="grade-num">9</span>
-      <span>дугаар анги</span>
-      <small>6 хичээл</small>
+  </nav>
+
+  <main class="container">
+    <div class="hero">
+      <h1>Улсын шалгалтад бэлд</h1>
+      <p>Blueprint-ийн дагуу рандом тест, AI дэмжлэгтэй дасгал</p>
+      <div class="grade-cards">
+        <div class="grade-card" onclick="openModal(5)">
+          <span class="grade-num">5</span>
+          <span>дугаар анги</span>
+          <small>3 хичээл</small>
+        </div>
+        <div class="grade-card" onclick="openModal(9)">
+          <span class="grade-num">9</span>
+          <span>дугаар анги</span>
+          <small>6 хичээл</small>
+        </div>
+        <div class="grade-card" onclick="openModal(12)">
+          <span class="grade-num">12</span>
+          <span>дугаар анги</span>
+          <small>10 хичээл</small>
+        </div>
+      </div>
     </div>
-    <div class="grade-card" onclick="location.href='/auth/login'">
-      <span class="grade-num">12</span>
-      <span>дугаар анги</span>
-      <small>10 хичээл</small>
+  </main>
+
+  <!-- Хичээл сонгох modal -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <h3 id="modal-title">Хичээл сонгоно уу</h3>
+      <div id="modal-buttons"></div>
+      <button class="modal-close" onclick="closeModal()">✕ Хаах</button>
     </div>
   </div>
-</div>
-{% endblock %}
+
+  <script>
+  const hicheelMap = {
+    5:  ["Монгол хэл","Математик","Байгалийн ухаан"],
+    9:  ["Монгол хэл","Математик","Физик","Хими","Биологи","Нийгмийн ухаан"],
+    12: ["Монгол хэл","Математик","Физик","Хими","Биологи",
+         "Нийгмийн ухаан","Газарзүй","Түүх","Англи хэл","Мэдээлэл зүй"]
+  };
+
+  let currentAngi = null;
+
+  function openModal(angi) {
+    currentAngi = angi;
+    document.getElementById("modal-title").textContent =
+      angi + "-р ангийн хичээл сонгоно уу";
+    const btns = document.getElementById("modal-buttons");
+    btns.innerHTML = "";
+    hicheelMap[angi].forEach(h => {
+      const btn = document.createElement("button");
+      btn.className = "hicheel-btn";
+      btn.textContent = h;
+      btn.onclick = () => goTest(angi, h);
+      btns.appendChild(btn);
+    });
+    document.getElementById("modal").classList.add("active");
+  }
+
+  function closeModal() {
+    document.getElementById("modal").classList.remove("active");
+  }
+
+  function goTest(angi, hicheel) {
+    location.href = `/test?angi=${angi}&hicheel=${encodeURIComponent(hicheel)}`;
+  }
+
+  // Modal-ийн гадна дарвал хаах
+  document.getElementById("modal").addEventListener("click", function(e) {
+    if (e.target === this) closeModal();
+  });
+  </script>
+</body>
+</html>

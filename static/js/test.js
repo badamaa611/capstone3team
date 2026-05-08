@@ -39,7 +39,7 @@ function showQuestion(idx) {
     const btn = document.createElement("button");
     btn.className = "option-btn";
     if (answers[q.id] === lbl) btn.classList.add("selected");
-    btn.textContent = `${lbl}. ${hariuht[i]}`;
+    btn.textContent = `${lbl}. ${hariult[i]}`;
     btn.onclick = () => selectAnswer(q.id, lbl);
     optBox.appendChild(btn);
   });
