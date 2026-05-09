@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Бүртгүүлэх</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">📚 Шалгалтын Бэлтгэл</div>
+  </nav>
+
+  <main class="container">
+    <div class="auth-box">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <h2>Бүртгүүлэх</h2>
+      <form method="POST" action="{{ url_for('auth.register') }}">
+        <div class="form-group">
+          <label>Нэр</label>
+          <input type="text" name="ner" required placeholder="Таны нэр">
+        </div>
+        <div class="form-group">
+          <label>И-мэйл</label>
+          <input type="email" name="email" required placeholder="email@example.com">
+        </div>
+        <div class="form-group">
+          <label>Нууц үг</label>
+          <input type="password" name="nuuts_ug" required placeholder="Нууц үг">
+        </div>
+        <div class="form-group">
+          <label>Хэрэглэгчийн төрөл</label>
+          <select name="duwer">
+            <option value="suragch">Сурагч</option>
+            <option value="bagsh">Багш</option>
+          </select>
+        </div>
+        <div class="form-group" id="angi-group">
+          <label>Анги</label>
+          <select name="angi">
+            <option value="5">5-р анги</option>
+            <option value="9">9-р анги</option>
+            <option value="12">12-р анги</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-primary">Бүртгүүлэх</button>
+      </form>
+
+      <p style="text-align:center; margin-top:1rem">
+        Бүртгэлтэй юу? 
+        <a href="{{ url_for('auth.login') }}">Нэвтрэх</a>
+      </p>
+    </div>
+  </main>
+
+  <script>
+  // Багш бол анги сонгохыг нуух
+  document.querySelector('select[name="duwer"]').addEventListener('change', function() {
+    document.getElementById('angi-group').style.display = 
+      this.value === 'bagsh' ? 'none' : 'block';
+  });
+  </script>
+</body>
+</html>

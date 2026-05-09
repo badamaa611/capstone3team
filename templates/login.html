@@ -1,18 +1,42 @@
-{% extends "base.html" %}
-{% block title %}Нэвтрэх{% endblock %}
-{% block content %}
-<div class="auth-box">
-  <h2>Нэвтрэх</h2>
-  <form method="POST" action="{{ url_for('auth.login') }}">
-    <div class="form-group">
-      <label>И-мэйл</label>
-      <input type="email" name="email" required placeholder="email@example.com">
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Нэвтрэх</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">📚 Шалгалтын Бэлтгэл</div>
+  </nav>
+
+  <main class="container">
+    <div class="auth-box">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <h2>Нэвтрэх</h2>
+      <form method="POST" action="{{ url_for('auth.login') }}">
+        <div class="form-group">
+          <label>И-мэйл</label>
+          <input type="email" name="email" required placeholder="email@example.com">
+        </div>
+        <div class="form-group">
+          <label>Нууц үг</label>
+          <input type="password" name="nuuts_ug" required placeholder="Нууц үг">
+        </div>
+        <button type="submit" class="btn-primary">Нэвтрэх</button>
+      </form>
+
+      <p style="text-align:center; margin-top:1rem">
+        Бүртгэл байхгүй юу? 
+        <a href="{{ url_for('auth.register') }}">Бүртгүүлэх</a>
+      </p>
     </div>
-    <div class="form-group">
-      <label>Нууц үг</label>
-      <input type="password" name="nuuts_ug" required>
-    </div>
-    <button type="submit" class="btn-primary">Нэвтрэх</button>
-  </form>
-</div>
-{% endblock %}
+  </main>
+</body>
+</html>
