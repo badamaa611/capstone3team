@@ -1,0 +1,25 @@
+# pip install flask-dance
+from flask_dance.contrib.google import make_google_blueprint, google
+
+google_bp = make_google_blueprint(
+    client_id="ЧИНИЙ_CLIENT_ID",
+    client_secret="ЧИНИЙ_CLIENT_SECRET",
+    scope=["profile", "email"]
+)
+app.register_blueprint(google_bp, url_prefix="/login")
+
+@app.route("/google-login")
+def google_login():
+    if not google.authorized:
+        return redirect(url_for("google.login"))
+    resp = google.get("/oauth2/v2/userinfo")
+    email = resp.json()["email"]
+    ner = resp.json()["name"]
+    # DB-д хадгалах эсвэл нэвтрүүлэх
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        user = User(ner=ner, email=email, nuuts_ug="google-auth", duwer="suragch")
+        db.session.add(user)
+        db.session.commit()
+    login_user(user)
+    return redirect(url_for("test_page"))
