@@ -36,3 +36,4 @@ def create_app():
             return redirect(url_for("auth.login"))
         angi = request.args.get("angi", "12")
         hicheel = request.args.get
+        app = create_app()
