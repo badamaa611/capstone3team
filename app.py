@@ -16,12 +16,14 @@ def create_app():
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
 
-    from api.auth_routes import auth_bp
+    from api.auth_routes import auth_bp, google_bp
     from api.test_routes import test_bp
-    from api.ai_routes   import ai_bp
+    from api.ai_routes import ai_bp
+
     app.register_blueprint(auth_bp, url_prefix="/auth")
+    app.register_blueprint(google_bp, url_prefix="/login")
     app.register_blueprint(test_bp, url_prefix="/api")
-    app.register_blueprint(ai_bp,   url_prefix="/api/ai")
+    app.register_blueprint(ai_bp, url_prefix="/api/ai")
 
     @app.route("/")
     def index():
@@ -32,28 +34,5 @@ def create_app():
         from flask_login import current_user
         if not current_user.is_authenticated:
             return redirect(url_for("auth.login"))
-        angi    = request.args.get("angi", "12")
-        hicheel = request.args.get("hicheel", "Биологи")
-        return render_template("test.html", angi=angi, hicheel=hicheel)
-
-    @app.route("/result")
-    def result_page():
-        return render_template("result.html")
-
-    with app.app_context():
-        from models import User, Question, TestSession, TestAnswer, WeakTopic
-        db.create_all()
-
-    return app
-
-@login_manager.user_loader
-def load_user(user_id):
-    from models import User
-    return User.query.get(int(user_id))
-
-if __name__ == "__main__":
-    app = create_app()
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
-    from api.auth_routes import google_bp
-app.register_blueprint(google_bp, url_prefix="/login")
+        angi = request.args.get("angi", "12")
+        hicheel = request.args.get
