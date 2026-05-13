@@ -1,3 +1,5 @@
+import os
+from flask_dance.contrib.google import make_google_blueprint, google
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from extensions import db, bcrypt
@@ -43,4 +45,24 @@ def register():
 @login_required
 def logout():
     logout_user()
+    return redirect(url_for("index"))
+google_bp = make_google_blueprint(
+    client_id=os.environ.get("GOOGLE_CLIENT_ID"),
+    client_secret=os.environ.get("GOOGLE_CLIENT_SECRET"),
+    scope=["profile", "email"]
+)
+
+@auth_bp.route("/google-login")
+def google_login():
+    if not google.authorized:
+        return redirect(url_for("google.login"))
+    resp = google.get("/oauth2/v2/userinfo")
+    email = resp.json()["email"]
+    ner = resp.json()["name"]
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        user = User(ner=ner, email=email, nuuts_ug="google", duwer="suragch", angi="")
+        db.session.add(user)
+        db.session.commit()
+    login_user(user)
     return redirect(url_for("index"))
