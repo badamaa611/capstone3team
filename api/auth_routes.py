@@ -1,11 +1,18 @@
 import os
-from flask_dance.contrib.google import make_google_blueprint, google
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
+from flask_dance.contrib.google import make_google_blueprint, google
 from extensions import db, bcrypt
 from models import User
 
 auth_bp = Blueprint("auth", __name__)
+
+google_bp = make_google_blueprint(
+    client_id=os.environ.get("GOOGLE_CLIENT_ID"),
+    client_secret=os.environ.get("GOOGLE_CLIENT_SECRET"),
+    scope=["profile", "email"],
+    redirect_to="auth.google_login"
+)
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
@@ -46,11 +53,6 @@ def register():
 def logout():
     logout_user()
     return redirect(url_for("index"))
-google_bp = make_google_blueprint(
-    client_id=os.environ.get("GOOGLE_CLIENT_ID"),
-    client_secret=os.environ.get("GOOGLE_CLIENT_SECRET"),
-    scope=["profile", "email"]
-)
 
 @auth_bp.route("/google-login")
 def google_login():
