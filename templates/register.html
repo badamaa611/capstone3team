@@ -34,19 +34,15 @@
           <input type="password" name="nuuts_ug" required placeholder="Нууц үг">
         </div>
         <div class="form-group">
-          <label>Хэрэглэгчийн төрөл</label>
+          <label>Хэн бэ?</label>
           <select name="duwer">
             <option value="suragch">Сурагч</option>
             <option value="bagsh">Багш</option>
           </select>
         </div>
-        <div class="form-group" id="angi-group">
+        <div class="form-group">
           <label>Анги</label>
-          <select name="angi">
-            <option value="5">5-р анги</option>
-            <option value="9">9-р анги</option>
-            <option value="12">12-р анги</option>
-          </select>
+          <input type="text" name="angi" placeholder="Жишээ: 12А">
         </div>
         <button type="submit" class="btn-primary">Бүртгүүлэх</button>
       </form>
@@ -57,13 +53,5 @@
       </p>
     </div>
   </main>
-
-  <script>
-  // Багш бол анги сонгохыг нуух
-  document.querySelector('select[name="duwer"]').addEventListener('change', function() {
-    document.getElementById('angi-group').style.display = 
-      this.value === 'bagsh' ? 'none' : 'block';
-  });
-  </script>
 </body>
 </html>

@@ -6,36 +6,50 @@
   <title>Шалгалтын Бэлтгэл</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
   <style>
-    .modal-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.5); z-index: 100;
-      justify-content: center; align-items: center;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f4f6fb; color: #222; }
+    .navbar { background: #1a0a00; display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 2rem; }
+    .nav-brand { font-size: 1.1rem; font-weight: bold; color: #fff; }
+    .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+    .nav-links span { color: #ffd7b5; font-size: 0.9rem; }
+    .nav-links a { color: #ff6b35; text-decoration: none; font-weight: bold; }
+    .container { max-width: 960px; margin: 0 auto; padding: 2rem 1rem; }
+    .hero-section { background: linear-gradient(135deg, #C0392B 0%, #E67E22 100%); border-radius: 16px; padding: 3rem 2rem; text-align: center; margin-bottom: 2rem; }
+    .hero-badge { display: inline-block; background: rgba(255,255,255,0.2); color: #fff; font-size: 13px; padding: 4px 16px; border-radius: 20px; margin-bottom: 1rem; border: 1px solid rgba(255,255,255,0.35); }
+    .hero-title { font-size: 2rem; font-weight: bold; color: #fff; margin: 0 0 0.5rem; line-height: 1.3; }
+    .hero-sub { font-size: 1rem; color: rgba(255,255,255,0.85); margin: 0 0 2rem; }
+    .grade-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 520px; margin: 0 auto; }
+    .grade-card { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.35); border-radius: 14px; padding: 1.25rem 1rem; cursor: pointer; text-align: center; transition: background 0.2s, transform 0.2s; }
+    .grade-card:hover { background: rgba(255,255,255,0.28); transform: translateY(-3px); }
+    .grade-num { font-size: 2.5rem; font-weight: bold; color: #fff; display: block; line-height: 1; margin-bottom: 4px; }
+    .grade-label { font-size: 13px; color: rgba(255,255,255,0.9); display: block; }
+    .grade-count { font-size: 11px; color: rgba(255,255,255,0.65); display: block; margin-top: 2px; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 2rem; }
+    .stat-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1rem 1.25rem; text-align: center; }
+    .stat-num { font-size: 1.75rem; font-weight: bold; color: #C0392B; margin: 0; }
+    .stat-label { font-size: 12px; color: #888; margin: 4px 0 0; }
+    .features-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 2rem; }
+    .feature-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1rem 1.25rem; display: flex; align-items: flex-start; gap: 12px; }
+    .feature-icon { width: 40px; height: 40px; border-radius: 10px; background: #fff3ef; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.3rem; }
+    .feature-title { font-size: 14px; font-weight: bold; color: #222; margin: 0 0 2px; }
+    .feature-desc { font-size: 12px; color: #888; margin: 0; }
+    .cta-row { display: flex; gap: 12px; justify-content: center; margin-bottom: 2rem; }
+    .btn-red { background: #C0392B; color: #fff; border: none; border-radius: 10px; padding: 12px 28px; font-size: 15px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-red:hover { background: #a93226; }
+    .btn-outline { background: #fff; color: #C0392B; border: 2px solid #C0392B; border-radius: 10px; padding: 12px 28px; font-size: 15px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-outline:hover { background: #fff3ef; }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 100; justify-content: center; align-items: center; }
     .modal-overlay.active { display: flex; }
-    .modal {
-      background: #fff; border-radius: 16px;
-      padding: 2rem; width: 360px; max-width: 90%;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-    }
-    .modal h3 { color: #1e3a5f; margin-bottom: 1.2rem; font-size: 1.2rem; }
-    .hicheel-btn {
-      display: block; width: 100%; text-align: left;
-      padding: 0.7rem 1rem; margin-bottom: 0.5rem;
-      border: 2px solid #e5e7eb; border-radius: 10px;
-      background: #f9fafb; cursor: pointer; font-size: 1rem;
-      transition: all 0.15s;
-    }
-    .hicheel-btn:hover { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
-    .modal-close {
-      margin-top: 0.5rem; width: 100%; padding: 0.6rem;
-      border: none; border-radius: 8px; background: #e5e7eb;
-      cursor: pointer; font-size: 0.95rem;
-    }
+    .modal { background: #fff; border-radius: 16px; padding: 2rem; width: 360px; max-width: 90%; }
+    .modal h3 { color: #C0392B; margin-bottom: 1.2rem; font-size: 1.1rem; }
+    .hicheel-btn { display: block; width: 100%; text-align: left; padding: 0.7rem 1rem; margin-bottom: 0.5rem; border: 2px solid #e5e7eb; border-radius: 10px; background: #f9fafb; cursor: pointer; font-size: 0.95rem; transition: all 0.15s; }
+    .hicheel-btn:hover { border-color: #C0392B; background: #fff3ef; color: #C0392B; }
+    .modal-close { margin-top: 0.5rem; width: 100%; padding: 0.6rem; border: 1px solid #e5e7eb; border-radius: 8px; background: #f4f6fb; cursor: pointer; font-size: 0.9rem; color: #666; }
   </style>
 </head>
 <body>
   <nav class="navbar">
-    <div class="nav-brand">📚 Шалгалтын Бэлтгэл</div>
+    <div class="nav-brand">🔥 Шалгалтын Бэлтгэл</div>
     <div class="nav-links">
       {% if current_user.is_authenticated %}
         <span>{{ current_user.ner }}</span>
@@ -45,32 +59,61 @@
       {% endif %}
     </div>
   </nav>
-
   <main class="container">
-    <div class="hero">
-      <h1>Улсын шалгалтад бэлд</h1>
-      <p>Blueprint-ийн дагуу рандом тест, AI дэмжлэгтэй дасгал</p>
-      <div class="grade-cards">
+    <div class="hero-section">
+      <span class="hero-badge">🔥 Улсын шалгалтад бэлд</span>
+      <h1 class="hero-title">Шалгалтын бэлтгэл<br>платформ</h1>
+      <p class="hero-sub">Blueprint-ийн дагуу рандом тест · AI дэмжлэгтэй дасгал</p>
+      <div class="grade-grid">
         <div class="grade-card" onclick="openModal(5)">
           <span class="grade-num">5</span>
-          <span>дугаар анги</span>
-          <small>3 хичээл</small>
+          <span class="grade-label">дугаар анги</span>
+          <span class="grade-count">3 хичээл</span>
         </div>
         <div class="grade-card" onclick="openModal(9)">
           <span class="grade-num">9</span>
-          <span>дугаар анги</span>
-          <small>6 хичээл</small>
+          <span class="grade-label">дугаар анги</span>
+          <span class="grade-count">6 хичээл</span>
         </div>
         <div class="grade-card" onclick="openModal(12)">
           <span class="grade-num">12</span>
-          <span>дугаар анги</span>
-          <small>10 хичээл</small>
+          <span class="grade-label">дугаар анги</span>
+          <span class="grade-count">10 хичээл</span>
         </div>
       </div>
     </div>
+    <div class="stats-row">
+      <div class="stat-card"><p class="stat-num">570+</p><p class="stat-label">Нийт асуулт</p></div>
+      <div class="stat-card"><p class="stat-num">19</p><p class="stat-label">Хичээл</p></div>
+      <div class="stat-card"><p class="stat-num">AI</p><p class="stat-label">Дэмжлэг</p></div>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📋</div>
+        <div><p class="feature-title">Blueprint тест</p><p class="feature-desc">Мэдлэг 27% · Чадвар 53% · Хэрэглээ 20%</p></div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <div><p class="feature-title">AI дасгал</p><p class="feature-desc">Алдаатай сэдвээр нэмэлт асуулт үүсгэнэ</p></div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <div><p class="feature-title">Явц хянах</p><p class="feature-desc">Сурагч бүрийн дэлгэрэнгүй тайлан</p></div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👩‍🏫</div>
+        <div><p class="feature-title">Багш самбар</p><p class="feature-desc">Тест үүсгэх · Сурагчдын явц харах</p></div>
+      </div>
+    </div>
+    <div class="cta-row">
+      {% if current_user.is_authenticated %}
+        <a href="#" class="btn-red" onclick="openModal(12)">Тест өгөх</a>
+      {% else %}
+        <a href="{{ url_for('auth.register') }}" class="btn-red">Бүртгүүлэх</a>
+        <a href="{{ url_for('auth.login') }}" class="btn-outline">Нэвтрэх</a>
+      {% endif %}
+    </div>
   </main>
-
-  <!-- Хичээл сонгох modal -->
   <div class="modal-overlay" id="modal">
     <div class="modal">
       <h3 id="modal-title">Хичээл сонгоно уу</h3>
@@ -78,45 +121,27 @@
       <button class="modal-close" onclick="closeModal()">✕ Хаах</button>
     </div>
   </div>
-
   <script>
   const hicheelMap = {
     5:  ["Монгол хэл","Математик","Байгалийн ухаан"],
     9:  ["Монгол хэл","Математик","Физик","Хими","Биологи","Нийгмийн ухаан"],
-    12: ["Монгол хэл","Математик","Физик","Хими","Биологи",
-         "Нийгмийн ухаан","Газарзүй","Түүх","Англи хэл","Мэдээлэл зүй"]
+    12: ["Монгол хэл","Математик","Физик","Хими","Биологи","Нийгмийн ухаан","Газарзүй","Түүх","Англи хэл","Мэдээлэл зүй"]
   };
-
-  let currentAngi = null;
-
   function openModal(angi) {
-    currentAngi = angi;
-    document.getElementById("modal-title").textContent =
-      angi + "-р ангийн хичээл сонгоно уу";
+    document.getElementById("modal-title").textContent = angi + "-р ангийн хичээл сонгоно уу";
     const btns = document.getElementById("modal-buttons");
     btns.innerHTML = "";
     hicheelMap[angi].forEach(h => {
       const btn = document.createElement("button");
       btn.className = "hicheel-btn";
       btn.textContent = h;
-      btn.onclick = () => goTest(angi, h);
+      btn.onclick = () => location.href = `/test?angi=${angi}&hicheel=${encodeURIComponent(h)}`;
       btns.appendChild(btn);
     });
     document.getElementById("modal").classList.add("active");
   }
-
-  function closeModal() {
-    document.getElementById("modal").classList.remove("active");
-  }
-
-  function goTest(angi, hicheel) {
-    location.href = `/test?angi=${angi}&hicheel=${encodeURIComponent(hicheel)}`;
-  }
-
-  // Modal-ийн гадна дарвал хаах
-  document.getElementById("modal").addEventListener("click", function(e) {
-    if (e.target === this) closeModal();
-  });
+  function closeModal() { document.getElementById("modal").classList.remove("active"); }
+  document.getElementById("modal").addEventListener("click", function(e) { if (e.target === this) closeModal(); });
   </script>
 </body>
 </html>

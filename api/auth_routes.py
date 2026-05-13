@@ -37,7 +37,7 @@ def register():
         db.session.commit()
         flash("Бүртгэл амжилттай! Нэвтэрнэ үү.", "success")
         return redirect(url_for("auth.login"))
-    return render_template("login.html")
+    return render_template("register.html")
 
 @auth_bp.route("/logout")
 @login_required
