@@ -35,9 +35,25 @@ def create_app():
         if not current_user.is_authenticated:
             return redirect(url_for("auth.login"))
         angi = request.args.get("angi", "12")
-        hicheel = request.args.get
-        app = create_app()
-        app = create_app()
+        hicheel = request.args.get("hicheel", "Биологи")
+        return render_template("test.html", angi=angi, hicheel=hicheel)
+
+    @app.route("/result")
+    def result_page():
+        return render_template("result.html")
+
+    with app.app_context():
+        from models import User, Question, TestSession, TestAnswer, WeakTopic
+        db.create_all()
+
+    return app
+
+@login_manager.user_loader
+def load_user(user_id):
+    from models import User
+    return User.query.get(int(user_id))
+
+app = create_app()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
