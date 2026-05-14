@@ -45,7 +45,8 @@ def create_app():
     with app.app_context():
         from models import User, Question, TestSession, TestAnswer, WeakTopic
         db.create_all()
-
+from api.test_routes import migrate_db
+migrate_db(app)
     return app
 
 @login_manager.user_loader

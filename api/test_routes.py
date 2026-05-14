@@ -4,7 +4,18 @@ from extensions import db
 from models import Question, TestSession, TestAnswer, WeakTopic
 import random
 from datetime import datetime
+from extensions import db
+from sqlalchemy import text
 
+# DB migration — image_url багана нэмэх
+def migrate_db(app):
+    with app.app_context():
+        try:
+            db.session.execute(text("ALTER TABLE questions ADD COLUMN image_url VARCHAR(500)"))
+            db.session.commit()
+            print("✅ image_url багана нэмэгдлээ")
+        except Exception as e:
+            print(f"Migration: {e}")
 test_bp = Blueprint("test", __name__)
 
 @test_bp.route("/test/generate")
