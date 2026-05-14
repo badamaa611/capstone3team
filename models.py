@@ -32,7 +32,8 @@ class Question(db.Model):
     v_hariu       = db.Column(db.Text)
     g_hariu       = db.Column(db.Text)
     d_hariu       = db.Column(db.Text)
-    zow_hariult   = db.Column(db.String(1), nullable=False)   # A/B/V/G/D
+    zow_hariult   = db.Column(db.String(1), nullable=False) 
+    image_url = db.Column(db.String(500))  # A/B/V/G/D
     tuwshin       = db.Column(db.SmallInteger, nullable=False) # 1/2/3
     created       = db.Column(db.DateTime, default=datetime.utcnow)
 

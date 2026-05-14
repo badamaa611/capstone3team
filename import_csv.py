@@ -8,8 +8,14 @@ from models import Question
 app = create_app()
 
 with app.app_context():
+    # Өмнөх асуултуудыг устгах
+    Question.query.delete()
+    db.session.commit()
+    print("Өмнөх асуултууд устгагдлаа")
+
     with open('questions.csv', 'r', encoding='utf-8-sig') as f:
         reader = csv.DictReader(f)
+        print("Баганууд:", reader.fieldnames)
         added = 0
         for row in reader:
             if not row.get('task'):
@@ -23,9 +29,9 @@ with app.app_context():
                 b_hariu=row.get('Буруу хариулт 1', ''),
                 v_hariu=row.get('Буруу хариулт 2', ''),
                 g_hariu=row.get('Буруу хариулт 3', ''),
-                d_hariu=row.get('link', ''),
                 zow_hariult='A',
                 tuwshin=2,
+                image_url=row.get('link', ''),
             )
             db.session.add(q)
             added += 1

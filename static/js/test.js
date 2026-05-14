@@ -29,6 +29,16 @@ function showQuestion(idx) {
   document.getElementById("current-q").textContent = idx + 1;
   document.getElementById("q-text").textContent = q.asuult;
 
+// Зураг харуулах
+const imgBox = document.getElementById("q-image-box");
+const img = document.getElementById("q-image");
+if (q.image_url && q.image_url.trim() !== '') {
+  img.src = q.image_url;
+  imgBox.style.display = "block";
+} else {
+  imgBox.style.display = "none";
+}
+
   const optBox  = document.getElementById("options");
   const labels  = ["A","B","V","G","D"];
   const hariult = [q.a_hariu, q.b_hariu, q.v_hariu, q.g_hariu, q.d_hariu];
