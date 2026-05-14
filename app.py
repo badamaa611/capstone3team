@@ -42,11 +42,15 @@ def create_app():
     def result_page():
         return render_template("result.html")
 
-    with app.app_context():
+   with app.app_context():
         from models import User, Question, TestSession, TestAnswer, WeakTopic
         db.create_all()
-from api.test_routes import migrate_db
-migrate_db(app)
+        try:
+            db.session.execute(db.text("ALTER TABLE questions ADD COLUMN image_url VARCHAR(500)"))
+            db.session.commit()
+        except:
+            pass
+
     return app
 
 @login_manager.user_loader
