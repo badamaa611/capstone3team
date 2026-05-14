@@ -4,123 +4,185 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Шалгалтын Бэлтгэл</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; background: #f4f6fb; color: #222; }
-    .navbar { background: #1a0a00; display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 2rem; }
-    .nav-brand { font-size: 1.1rem; font-weight: bold; color: #fff; }
-    .nav-links { display: flex; gap: 1.5rem; align-items: center; }
-    .nav-links span { color: #ffd7b5; font-size: 0.9rem; }
-    .nav-links a { color: #ff6b35; text-decoration: none; font-weight: bold; }
-    .container { max-width: 960px; margin: 0 auto; padding: 2rem 1rem; }
-    .hero-section { background: linear-gradient(135deg, #C0392B 0%, #E67E22 100%); border-radius: 16px; padding: 3rem 2rem; text-align: center; margin-bottom: 2rem; }
-    .hero-badge { display: inline-block; background: rgba(255,255,255,0.2); color: #fff; font-size: 13px; padding: 4px 16px; border-radius: 20px; margin-bottom: 1rem; border: 1px solid rgba(255,255,255,0.35); }
-    .hero-title { font-size: 2rem; font-weight: bold; color: #fff; margin: 0 0 0.5rem; line-height: 1.3; }
-    .hero-sub { font-size: 1rem; color: rgba(255,255,255,0.85); margin: 0 0 2rem; }
-    .grade-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 520px; margin: 0 auto; }
-    .grade-card { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.35); border-radius: 14px; padding: 1.25rem 1rem; cursor: pointer; text-align: center; transition: background 0.2s, transform 0.2s; }
-    .grade-card:hover { background: rgba(255,255,255,0.28); transform: translateY(-3px); }
-    .grade-num { font-size: 2.5rem; font-weight: bold; color: #fff; display: block; line-height: 1; margin-bottom: 4px; }
-    .grade-label { font-size: 13px; color: rgba(255,255,255,0.9); display: block; }
-    .grade-count { font-size: 11px; color: rgba(255,255,255,0.65); display: block; margin-top: 2px; }
-    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 2rem; }
-    .stat-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1rem 1.25rem; text-align: center; }
-    .stat-num { font-size: 1.75rem; font-weight: bold; color: #C0392B; margin: 0; }
-    .stat-label { font-size: 12px; color: #888; margin: 4px 0 0; }
-    .features-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 2rem; }
-    .feature-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1rem 1.25rem; display: flex; align-items: flex-start; gap: 12px; }
-    .feature-icon { width: 40px; height: 40px; border-radius: 10px; background: #fff3ef; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.3rem; }
-    .feature-title { font-size: 14px; font-weight: bold; color: #222; margin: 0 0 2px; }
-    .feature-desc { font-size: 12px; color: #888; margin: 0; }
-    .cta-row { display: flex; gap: 12px; justify-content: center; margin-bottom: 2rem; }
-    .btn-red { background: #C0392B; color: #fff; border: none; border-radius: 10px; padding: 12px 28px; font-size: 15px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; }
-    .btn-red:hover { background: #a93226; }
-    .btn-outline { background: #fff; color: #C0392B; border: 2px solid #C0392B; border-radius: 10px; padding: 12px 28px; font-size: 15px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; }
-    .btn-outline:hover { background: #fff3ef; }
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 100; justify-content: center; align-items: center; }
-    .modal-overlay.active { display: flex; }
-    .modal { background: #fff; border-radius: 16px; padding: 2rem; width: 360px; max-width: 90%; }
-    .modal h3 { color: #C0392B; margin-bottom: 1.2rem; font-size: 1.1rem; }
-    .hicheel-btn { display: block; width: 100%; text-align: left; padding: 0.7rem 1rem; margin-bottom: 0.5rem; border: 2px solid #e5e7eb; border-radius: 10px; background: #f9fafb; cursor: pointer; font-size: 0.95rem; transition: all 0.15s; }
-    .hicheel-btn:hover { border-color: #C0392B; background: #fff3ef; color: #C0392B; }
-    .modal-close { margin-top: 0.5rem; width: 100%; padding: 0.6rem; border: 1px solid #e5e7eb; border-radius: 8px; background: #f4f6fb; cursor: pointer; font-size: 0.9rem; color: #666; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-6px); } }
+    @keyframes pulse { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.05); opacity:0.8; } }
+    @keyframes moveDots { 0% { background-position:0 0; } 100% { background-position:40px 40px; } }
+    @keyframes glowOrb { 0%,100% { opacity:0.15; } 50% { opacity:0.28; } }
+
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:Arial, sans-serif; background:#060F1E; min-height:100vh; position:relative; overflow-x:hidden; }
+
+    .bg-layer { position:fixed; inset:0; z-index:0; background: radial-gradient(ellipse 60% 40% at 15% 20%, rgba(26,95,168,0.18) 0%, transparent 70%), radial-gradient(ellipse 50% 35% at 85% 75%, rgba(74,159,224,0.12) 0%, transparent 65%); }
+    .bg-dots { position:fixed; inset:0; z-index:0; background-image:radial-gradient(circle, rgba(74,159,224,0.18) 1px, transparent 1px); background-size:28px 28px; animation:moveDots 8s linear infinite; }
+    .bg-lines { position:fixed; inset:0; z-index:0; background-image: linear-gradient(rgba(74,159,224,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(74,159,224,0.05) 1px, transparent 1px); background-size:80px 80px; }
+    .orb1 { position:fixed; width:400px; height:400px; border-radius:50%; background:radial-gradient(circle, rgba(26,95,168,0.25) 0%, transparent 70%); top:-100px; left:-80px; z-index:0; animation:glowOrb 4s ease-in-out infinite; pointer-events:none; }
+    .orb2 { position:fixed; width:300px; height:300px; border-radius:50%; background:radial-gradient(circle, rgba(74,159,224,0.15) 0%, transparent 70%); bottom:-60px; right:-40px; z-index:0; animation:glowOrb 5s ease-in-out infinite 1.5s; pointer-events:none; }
+    .orb3 { position:fixed; width:200px; height:200px; border-radius:50%; background:radial-gradient(circle, rgba(26,95,168,0.12) 0%, transparent 70%); top:40%; right:10%; z-index:0; animation:glowOrb 6s ease-in-out infinite 0.8s; pointer-events:none; }
+
+    .content { position:relative; z-index:1; }
+
+    .nav { background:rgba(13,31,60,0.7); padding:14px 28px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(74,159,224,0.12); backdrop-filter:blur(8px); position:sticky; top:0; z-index:100; }
+    .nav-logo { color:#E8F4FD; font-size:15px; font-weight:500; display:flex; align-items:center; gap:8px; text-decoration:none; }
+    .nav-dot { width:8px; height:8px; border-radius:50%; background:#4A9FE0; animation:pulse 2s infinite; display:inline-block; }
+    .nav-links { display:flex; gap:20px; align-items:center; }
+    .nav-link { color:#7FB8E0; font-size:13px; text-decoration:none; }
+    .nav-btn { background:rgba(26,95,168,0.6); color:#E8F4FD; font-size:13px; padding:6px 16px; border-radius:8px; text-decoration:none; border:1px solid rgba(74,159,224,0.3); backdrop-filter:blur(4px); }
+
+    .container { max-width:960px; margin:0 auto; padding:2rem 1rem; }
+
+    .hero { padding:3rem 1rem 2rem; text-align:center; animation:fadeUp 0.7s ease both; }
+    .hero-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(13,31,60,0.7); color:#7FB8E0; font-size:12px; padding:5px 14px; border-radius:20px; border:1px solid rgba(74,159,224,0.2); margin-bottom:1.2rem; backdrop-filter:blur(4px); }
+    .badge-dot { width:6px; height:6px; border-radius:50%; background:#4A9FE0; animation:pulse 2s infinite; display:inline-block; }
+    .hero-title { font-size:2.2rem; font-weight:500; color:#E8F4FD; margin:0 0 0.6rem; line-height:1.25; }
+    .hero-title span { color:#4A9FE0; }
+    .hero-sub { font-size:14px; color:#7FB8E0; margin:0 0 2rem; }
+
+    .grade-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; max-width:500px; margin:0 auto 2rem; }
+    .grade-card { background:rgba(13,31,60,0.55); border:1px solid rgba(74,159,224,0.15); border-radius:14px; padding:1.2rem 1rem; cursor:pointer; text-align:center; transition:all 0.25s; animation:fadeUp 0.7s ease both; backdrop-filter:blur(6px); }
+    .grade-card:nth-child(1){animation-delay:0.1s;}
+    .grade-card:nth-child(2){animation-delay:0.2s;}
+    .grade-card:nth-child(3){animation-delay:0.3s;}
+    .grade-card:hover { background:rgba(17,40,71,0.8); border-color:rgba(74,159,224,0.4); transform:translateY(-4px); }
+    .grade-num { font-size:2.2rem; font-weight:500; color:#4A9FE0; display:block; line-height:1; margin-bottom:4px; animation:float 3s ease-in-out infinite; }
+    .grade-card:nth-child(2) .grade-num{animation-delay:0.5s;}
+    .grade-card:nth-child(3) .grade-num{animation-delay:1s;}
+    .grade-lbl { font-size:12px; color:#B8D4EE; display:block; }
+    .grade-cnt { font-size:11px; color:#4A7FA8; display:block; margin-top:3px; }
+
+    .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:rgba(74,159,224,0.08); border-radius:12px; overflow:hidden; margin-bottom:1.5rem; }
+    .stat { background:rgba(13,31,60,0.6); padding:1.25rem; text-align:center; backdrop-filter:blur(4px); }
+    .stat-n { font-size:1.6rem; font-weight:500; color:#4A9FE0; margin:0; }
+    .stat-l { font-size:12px; color:#4A7FA8; margin:3px 0 0; }
+
+    .features { display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:rgba(74,159,224,0.06); border-radius:12px; overflow:hidden; margin-bottom:1.5rem; }
+    .feat { background:rgba(6,15,30,0.75); padding:1.25rem 1.5rem; display:flex; gap:14px; align-items:flex-start; backdrop-filter:blur(4px); }
+    .feat-ico { width:38px; height:38px; border-radius:10px; background:rgba(26,95,168,0.2); border:1px solid rgba(74,159,224,0.2); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:18px; }
+    .feat-title { font-size:13px; font-weight:500; color:#B8D4EE; margin:0 0 3px; }
+    .feat-desc { font-size:11px; color:#4A7FA8; margin:0; line-height:1.5; }
+
+    .cta { display:flex; gap:12px; justify-content:center; margin-bottom:3rem; }
+    .btn-p { background:rgba(26,95,168,0.7); color:#E8F4FD; border:1px solid rgba(74,159,224,0.3); border-radius:10px; padding:11px 28px; font-size:14px; font-weight:500; cursor:pointer; text-decoration:none; display:inline-block; backdrop-filter:blur(4px); }
+    .btn-p:hover { background:rgba(30,111,191,0.85); }
+    .btn-g { background:transparent; color:#7FB8E0; border:1px solid rgba(74,159,224,0.2); border-radius:10px; padding:11px 28px; font-size:14px; cursor:pointer; text-decoration:none; display:inline-block; }
+    .btn-g:hover { border-color:rgba(74,159,224,0.4); color:#B8D4EE; }
+
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; justify-content:center; align-items:center; }
+    .modal-overlay.active { display:flex; }
+    .modal-box { background:rgba(13,31,60,0.95); border:1px solid rgba(74,159,224,0.2); border-radius:16px; padding:1.75rem; width:340px; max-width:90%; animation:fadeUp 0.3s ease; backdrop-filter:blur(12px); }
+    .modal-title { color:#B8D4EE; font-size:15px; font-weight:500; margin:0 0 1rem; }
+    .hicheel-btn { display:block; width:100%; text-align:left; padding:10px 14px; margin-bottom:8px; border:1px solid rgba(74,159,224,0.15); border-radius:10px; background:rgba(6,15,30,0.6); cursor:pointer; font-size:13px; color:#7FB8E0; transition:all 0.15s; }
+    .hicheel-btn:hover { border-color:rgba(74,159,224,0.35); background:rgba(17,40,71,0.8); color:#B8D4EE; }
+    .modal-close { margin-top:4px; width:100%; padding:9px; border:1px solid rgba(74,159,224,0.1); border-radius:8px; background:transparent; cursor:pointer; font-size:13px; color:#4A7FA8; }
+
+    .alert { padding:0.75rem 1rem; border-radius:8px; margin-bottom:1rem; }
+    .alert-error { background:rgba(192,57,43,0.2); color:#ff8a7a; border:1px solid rgba(192,57,43,0.3); }
+    .alert-success { background:rgba(22,163,74,0.2); color:#86efac; border:1px solid rgba(22,163,74,0.3); }
+
+    @media (max-width: 600px) {
+      .hero-title { font-size:1.5rem; }
+      .features { grid-template-columns:1fr; }
+      .nav { padding:12px 16px; }
+    }
   </style>
 </head>
 <body>
-  <nav class="navbar">
-    <div class="nav-brand">🔥 Шалгалтын Бэлтгэл</div>
-    <div class="nav-links">
-      {% if current_user.is_authenticated %}
-        <span>{{ current_user.ner }}</span>
-        <a href="{{ url_for('auth.logout') }}">Гарах</a>
-      {% else %}
-        <a href="{{ url_for('auth.login') }}">Нэвтрэх</a>
-      {% endif %}
-    </div>
-  </nav>
-  <main class="container">
-    <div class="hero-section">
-      <span class="hero-badge">🔥 Улсын шалгалтад бэлд</span>
-      <h1 class="hero-title">Шалгалтын бэлтгэл<br>платформ</h1>
-      <p class="hero-sub">Blueprint-ийн дагуу рандом тест · AI дэмжлэгтэй дасгал</p>
-      <div class="grade-grid">
-        <div class="grade-card" onclick="openModal(5)">
-          <span class="grade-num">5</span>
-          <span class="grade-label">дугаар анги</span>
-          <span class="grade-count">3 хичээл</span>
+  <div class="bg-layer"></div>
+  <div class="bg-dots"></div>
+  <div class="bg-lines"></div>
+  <div class="orb1"></div>
+  <div class="orb2"></div>
+  <div class="orb3"></div>
+
+  <div class="content">
+    <nav class="nav">
+      <a href="/" class="nav-logo"><span class="nav-dot"></span> Шалгалтын бэлтгэл</a>
+      <div class="nav-links">
+        {% if current_user.is_authenticated %}
+          <span style="color:#7FB8E0; font-size:13px;">{{ current_user.ner }}</span>
+          <a href="{{ url_for('auth.logout') }}" class="nav-link">Гарах</a>
+        {% else %}
+          <a href="{{ url_for('auth.login') }}" class="nav-link">Нэвтрэх</a>
+          <a href="{{ url_for('auth.register') }}" class="nav-btn">Бүртгүүлэх</a>
+        {% endif %}
+      </div>
+    </nav>
+
+    <div class="container">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <div class="hero">
+        <div class="hero-badge"><span class="badge-dot"></span> Улсын шалгалтад бэлтгэх платформ</div>
+        <h1 class="hero-title">Мэдлэгээ <span>шалгаж</span>,<br>ирээдүйдээ бэлд</h1>
+        <p class="hero-sub">Blueprint-ийн дагуу рандом тест · AI адаптив дасгал · Явц хянах</p>
+        <div class="grade-grid">
+          <div class="grade-card" onclick="openModal(5)">
+            <span class="grade-num">5</span>
+            <span class="grade-lbl">дугаар анги</span>
+            <span class="grade-cnt">3 хичээл</span>
+          </div>
+          <div class="grade-card" onclick="openModal(9)">
+            <span class="grade-num">9</span>
+            <span class="grade-lbl">дугаар анги</span>
+            <span class="grade-cnt">6 хичээл</span>
+          </div>
+          <div class="grade-card" onclick="openModal(12)">
+            <span class="grade-num">12</span>
+            <span class="grade-lbl">дугаар анги</span>
+            <span class="grade-cnt">10 хичээл</span>
+          </div>
         </div>
-        <div class="grade-card" onclick="openModal(9)">
-          <span class="grade-num">9</span>
-          <span class="grade-label">дугаар анги</span>
-          <span class="grade-count">6 хичээл</span>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><p class="stat-n">570+</p><p class="stat-l">Нийт асуулт</p></div>
+        <div class="stat"><p class="stat-n">19</p><p class="stat-l">Хичээл</p></div>
+        <div class="stat"><p class="stat-n">AI</p><p class="stat-l">Дэмжлэг</p></div>
+      </div>
+
+      <div class="features">
+        <div class="feat">
+          <div class="feat-ico">📋</div>
+          <div><p class="feat-title">Blueprint тест</p><p class="feat-desc">Мэдлэг 27% · Чадвар 53% · Хэрэглээ 20%</p></div>
         </div>
-        <div class="grade-card" onclick="openModal(12)">
-          <span class="grade-num">12</span>
-          <span class="grade-label">дугаар анги</span>
-          <span class="grade-count">10 хичээл</span>
+        <div class="feat">
+          <div class="feat-ico">🤖</div>
+          <div><p class="feat-title">AI адаптив дасгал</p><p class="feat-desc">Алдаатай сэдвээр нэмэлт асуулт үүсгэнэ</p></div>
+        </div>
+        <div class="feat">
+          <div class="feat-ico">📊</div>
+          <div><p class="feat-title">Явц хянах</p><p class="feat-desc">Сурагч бүрийн дэлгэрэнгүй тайлан</p></div>
+        </div>
+        <div class="feat">
+          <div class="feat-ico">👩‍🏫</div>
+          <div><p class="feat-title">Багш самбар</p><p class="feat-desc">Тест үүсгэх · Сурагчдын явц харах</p></div>
         </div>
       </div>
-    </div>
-    <div class="stats-row">
-      <div class="stat-card"><p class="stat-num">570+</p><p class="stat-label">Нийт асуулт</p></div>
-      <div class="stat-card"><p class="stat-num">19</p><p class="stat-label">Хичээл</p></div>
-      <div class="stat-card"><p class="stat-num">AI</p><p class="stat-label">Дэмжлэг</p></div>
-    </div>
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon">📋</div>
-        <div><p class="feature-title">Blueprint тест</p><p class="feature-desc">Мэдлэг 27% · Чадвар 53% · Хэрэглээ 20%</p></div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🤖</div>
-        <div><p class="feature-title">AI дасгал</p><p class="feature-desc">Алдаатай сэдвээр нэмэлт асуулт үүсгэнэ</p></div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📊</div>
-        <div><p class="feature-title">Явц хянах</p><p class="feature-desc">Сурагч бүрийн дэлгэрэнгүй тайлан</p></div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">👩‍🏫</div>
-        <div><p class="feature-title">Багш самбар</p><p class="feature-desc">Тест үүсгэх · Сурагчдын явц харах</p></div>
+
+      <div class="cta">
+        {% if current_user.is_authenticated %}
+          <a href="#" class="btn-p" onclick="openModal(12)">Тест өгөх</a>
+        {% else %}
+          <a href="{{ url_for('auth.register') }}" class="btn-p">Бүртгүүлэх</a>
+          <a href="{{ url_for('auth.login') }}" class="btn-g">Нэвтрэх</a>
+        {% endif %}
       </div>
     </div>
-    <div class="cta-row">
-      {% if current_user.is_authenticated %}
-        <a href="#" class="btn-red" onclick="openModal(12)">Тест өгөх</a>
-      {% else %}
-        <a href="{{ url_for('auth.register') }}" class="btn-red">Бүртгүүлэх</a>
-        <a href="{{ url_for('auth.login') }}" class="btn-outline">Нэвтрэх</a>
-      {% endif %}
-    </div>
-  </main>
+  </div>
+
   <div class="modal-overlay" id="modal">
-    <div class="modal">
-      <h3 id="modal-title">Хичээл сонгоно уу</h3>
+    <div class="modal-box">
+      <p class="modal-title" id="modal-title">Хичээл сонгоно уу</p>
       <div id="modal-buttons"></div>
       <button class="modal-close" onclick="closeModal()">✕ Хаах</button>
     </div>
   </div>
+
   <script>
   const hicheelMap = {
     5:  ["Монгол хэл","Математик","Байгалийн ухаан"],
@@ -141,7 +203,7 @@
     document.getElementById("modal").classList.add("active");
   }
   function closeModal() { document.getElementById("modal").classList.remove("active"); }
-  document.getElementById("modal").addEventListener("click", function(e) { if (e.target === this) closeModal(); });
+  document.getElementById("modal").addEventListener("click", function(e) { if(e.target===this) closeModal(); });
   </script>
 </body>
 </html>
