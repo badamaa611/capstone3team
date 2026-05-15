@@ -6,8 +6,11 @@ def create_app():
     app = Flask(__name__)
     base_dir = os.path.abspath(os.path.dirname(__file__))
     app.config["SECRET_KEY"] = "capstone-secret-2025"
-    app.config["SQLALCHEMY_DATABASE_URI"] = (
-        "sqlite:///" + os.path.join(base_dir, "capstone.db")
+    database_url = os.getenv("DATABASE_URL", "sqlite:///" + os.path.join(base_dir, "capstone.db"))
+
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
