@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ hicheel }} - {{ angi }}-р анги</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --primary: #378ADD;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 650px;
+            margin: 0 auto;
+        }
+        .header-box {
+            background: var(--surface);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .header-box h2 { margin: 0 0 5px; font-size: 1.5rem; color: var(--primary); }
+        .header-box p { margin: 0; color: var(--text-muted); font-size: 13px; }
+        
+        .q-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+        .q-text {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        .img-wrap {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 15px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .q-img {
+            max-width: 100%;
+            max-height: 350px;
+            border-radius: 6px;
+            object-fit: contain;
+        }
+        .options-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .opt-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 12px 15px;
+            border-radius: 8px;
+            text-align: left;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+        }
+        .opt-btn:hover:not(:disabled) {
+            background: #e6f1fb;
+            border-color: var(--primary);
+        }
+        /* ЗӨВ БУРУУГИЙН ӨНГӨ */
+        .opt-btn.correct {
+            background-color: #d1fae5 !important;
+            border-color: var(--success) !important;
+            color: #065f46 !important;
+            font-weight: 600;
+        }
+        .opt-btn.incorrect {
+            background-color: #fee2e2 !important;
+            border-color: var(--danger) !important;
+            color: #991b1b !important;
+        }
+        .back-btn {
+            display: block;
+            text-align: center;
+            margin-top: 30px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .back-btn:hover { color: var(--primary); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-box">
+        <h2>{{ hicheel }}</h2>
+        <p>{{ angi }}-р анги · Улсын шалгалтын сорил бэлтгэл</p>
+    </div>
+
+    {% if questions %}
+        {% for q in questions %}
+            <div class="q-card" id="q-box-{{ q.id }}">
+                <div class="q-text">Асуулт {{ loop.index }}. {{ q.question_text }}</div>
+                
+                {% if q.image_url %}
+                    <div class="img-wrap">
+                        <img src="{{ q.image_url }}" class="q-img" alt="Асуултын зураг харагдах хэсэг">
+                    </div>
+                {% endif %}
+
+                <div class="options-grid">
+                    <button class="opt-btn" data-ans="A" onclick="checkAnswer(this, 'A', '{{ q.correct }}')">А. {{ q.opt_a }}</button>
+                    <button class="opt-btn" data-ans="B" onclick="checkAnswer(this, 'B', '{{ q.correct }}')">Б. {{ q.opt_b }}</button>
+                    <button class="opt-btn" data-ans="C" onclick="checkAnswer(this, 'C', '{{ q.correct }}')">В. {{ q.opt_c }}</button>
+                    <button class="opt-btn" data-ans="D" onclick="checkAnswer(this, 'D', '{{ q.correct }}')">Г. {{ q.opt_d }}</button>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="q-card" style="text-align:center; color: var(--text-muted);">
+            😞 Уучлаарай, энэ хичээлд тохирох асуулт одоогоор олдсонгүй. <br>Google Sheet-ийн Анги, Хичээл баганын бичиглэлийг шалгана уу.
+        </div>
+    {% endif %}
+
+    <a href="/" class="back-btn">← Нүүр хуудас руу буцах</a>
+</div>
+
+<script>
+function checkAnswer(clickedBtn, selected, correct) {
+    const parent = clickedBtn.parentElement;
+    const buttons = parent.querySelectorAll('.opt-btn');
+    
+    // Тухайн асуултын бүх товчийг идэвхгүй болгох
+    buttons.forEach(btn => btn.disabled = true);
+
+    // Дарсан товч зөв эсэхийг шалгах
+    if (selected === correct) {
+        clickedBtn.classList.add('correct');
+    } else {
+        clickedBtn.classList.add('incorrect');
+        // Бурууг дарахад зөв хариултыг нь давхар ногооноор гэрэлтүүлж харуулах
+        buttons.forEach(btn => {
+            if (btn.getAttribute('data-ans') === correct) {
+                btn.classList.add('correct');
+            }
+        });
+    }
+}
+</script>
+</body>
+</html>
