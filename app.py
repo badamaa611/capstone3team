@@ -38,11 +38,12 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 # GOOGLE AUTH BLUEPRINT
+# GOOGLE AUTH BLUEPRINT (500 АЛДААНААС СЭРГИЙЛЖ ЗАСАВ)
 google_bp = make_google_blueprint(
     client_id=os.environ.get("GOOGLE_CLIENT_ID", "ЧИНИЙ_GOOGLE_CLIENT_ID"),
     client_secret=os.environ.get("GOOGLE_CLIENT_SECRET", "ЧИНИЙ_GOOGLE_CLIENT_SECRET"),
     scope=["profile", "email"],
-    redirect_to="google_callback"  # Функцийн нэртэй ижил байх ёстой
+    redirect_url="/google-callback"  # redirect_to-ийн оронд шууд хаягийн замыг зааж өгөв
 )
 app.register_blueprint(google_bp, url_prefix="/login")
 
@@ -69,9 +70,8 @@ def google_callback():
     login_user(user)
     return redirect(url_for("index"))
 
-@app.route("/google-login")
-def google_login():
-    return redirect(url_for("google.login"))
-
 @app.route("/logout")
-@login
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for("index"))
