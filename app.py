@@ -3,7 +3,8 @@ from flask import Flask, render_template, redirect, url_for
 from flask_dance.contrib.google import make_google_blueprint, google
 from flask_login import login_user, current_user
 from extensions import db, bcrypt, login_manager
-from models import User, TestSession
+from models import User, TestSession, Question
+from google_sheets_api import import_sheet_questions
 from api.auth_routes import auth_bp
 from api.test_routes import test_bp
 from api.ai_routes import ai_bp
@@ -67,6 +68,12 @@ def create_app():
 
     @app.route("/")
     def index():
+        if Question.query.count() == 0:
+            try:
+                import_sheet_questions()
+            except Exception:
+                pass
+
         progress_stats = []
         if current_user.is_authenticated:
             sessions = TestSession.query.filter_by(suragch_id=current_user.id).all()
@@ -85,7 +92,13 @@ def create_app():
                     "tests": len(values)
                 })
             progress_stats.sort(key=lambda x: x["avg"], reverse=True)
-        return render_template("index.html", progress_stats=progress_stats)
+
+        subjects = [
+            {"angi": row[0], "hicheel": row[1]}
+            for row in Question.query.with_entities(Question.angi, Question.hicheel)
+                .distinct().order_by(Question.angi, Question.hicheel).all()
+        ]
+        return render_template("index.html", progress_stats=progress_stats, subjects=subjects)
 
     @app.route("/test")
     def test_page():
