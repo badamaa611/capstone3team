@@ -39,12 +39,13 @@ def load_user(user_id):
 
 # GOOGLE AUTH BLUEPRINT
 # GOOGLE AUTH BLUEPRINT (500 АЛДААНААС СЭРГИЙЛЖ ЗАСАВ)
+# GOOGLE AUTH BLUEPRINT
 google_bp = make_google_blueprint(
     client_id=os.environ.get("GOOGLE_CLIENT_ID", "ЧИНИЙ_GOOGLE_CLIENT_ID"),
     client_secret=os.environ.get("GOOGLE_CLIENT_SECRET", "ЧИНИЙ_GOOGLE_CLIENT_SECRET"),
-    scope=["profile", "email"],
-    redirect_url="/google-callback"  # redirect_to-ийн оронд шууд хаягийн замыг зааж өгөв
+    scope=["profile", "email"]
 )
+
 app.register_blueprint(google_bp, url_prefix="/login")
 
 # Google-ээр амжилттай нэвтэрсний дараа дуудагдах функц
