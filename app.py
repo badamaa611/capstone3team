@@ -79,10 +79,6 @@ def logout():
 def index():
     # templates хавтас доторх index.html файлыг уншиж харуулна
     return render_template("index.html")
-@app.route("/")
-def index():
-    # templates хавтас доторх index.html файлыг уншиж харуулна
-    return render_template("index.html")
 
 if __name__ == '__main__':
     with app.app_context():
