@@ -1,9 +1,10 @@
 // ── Тестийн логик ──────────────────────────────────────────────
-let questions   = [];
-let currentIdx  = 0;
-let answers     = {};  // { question_id: hariult }
-let timerSec    = 80 * 60;
-let timerHandle = null;
+let questions     = [];
+let currentIdx    = 0;
+let answers       = {};  // { question_id: hariult }
+let testSessionId = null;
+let timerSec      = 80 * 60;
+let timerHandle   = null;
 
 // Тест ачааллах (URL-ээс параметр авна)
 async function loadTest() {
@@ -13,9 +14,18 @@ async function loadTest() {
 
   const res  = await fetch(`/api/test/generate?angi=${angi}&hicheel=${encodeURIComponent(hicheel)}&too=30`);
   const data = await res.json();
-  questions  = data.asuultuud || [];
+  questions      = data.asuultuud || [];
+  testSessionId  = data.session_id || null;
 
   document.getElementById("total-q").textContent = questions.length;
+  if (!questions.length) {
+    document.getElementById("question-box").innerHTML = '<p>Тохирох асуулт олдсонгүй. Анги, хичээлээ шалгана уу.</p>';
+    document.getElementById("prev-btn").disabled = true;
+    document.getElementById("next-btn").style.display = "none";
+    document.getElementById("finish-btn").style.display = "none";
+    return;
+  }
+
   showQuestion(0);
   startTimer();
 }
@@ -74,7 +84,7 @@ async function finishTest() {
   const res = await fetch("/api/test/submit", {
     method: "POST",
     headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ answers })
+    body: JSON.stringify({ session_id: testSessionId, answers })
   });
   const data = await res.json();
   const params = new URLSearchParams(window.location.search);
