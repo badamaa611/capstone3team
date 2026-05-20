@@ -25,7 +25,6 @@ def migrate_db(app):
 test_bp = Blueprint("test", __name__)
 
 @test_bp.route("/test/generate")
-@login_required
 def generate_test():
     angi    = request.args.get("angi", "12")
     hicheel = request.args.get("hicheel", "")
@@ -75,8 +74,9 @@ def generate_test():
     asuultuud = unique_qs
 
     # Тестийн сесс үүсгэх (тоо одоо дүнгэслэгдсэн unique асуултуудаар)
+    suragch = current_user.id if getattr(current_user, 'is_authenticated', False) else None
     session = TestSession(
-        suragch_id=current_user.id,
+        suragch_id=suragch,
         angi=angi, hicheel=hicheel, too=len(asuultuud)
     )
     db.session.add(session)
@@ -91,7 +91,6 @@ def generate_test():
     })
 
 @test_bp.route("/test/submit", methods=["POST"])
-@login_required
 def submit_test():
     data       = request.get_json()
     session_id = data.get("session_id")
@@ -124,28 +123,30 @@ def submit_test():
         )
         db.session.add(answer)
 
-    # WeakTopic шинэчлэх
-    for (hicheel, sedew), aldaa in sul_sedewnuud.items():
-        wt = WeakTopic.query.filter_by(
-            suragch_id=current_user.id,
-            hicheel=hicheel, sedew=sedew
-        ).first()
-        if wt:
-            wt.aldaa_too += aldaa
-            wt.updated = datetime.utcnow()
-        else:
-            wt = WeakTopic(
+    # WeakTopic шинэчлэх (хэрэглэгч нэвтрээгүй бол энэ хэсгийг алгасна)
+    if getattr(current_user, 'is_authenticated', False):
+        for (hicheel, sedew), aldaa in sul_sedewnuud.items():
+            wt = WeakTopic.query.filter_by(
                 suragch_id=current_user.id,
-                hicheel=hicheel, sedew=sedew, aldaa_too=aldaa
-            )
-            db.session.add(wt)
+                hicheel=hicheel, sedew=sedew
+            ).first()
+            if wt:
+                wt.aldaa_too += aldaa
+                wt.updated = datetime.utcnow()
+            else:
+                wt = WeakTopic(
+                    suragch_id=current_user.id,
+                    hicheel=hicheel, sedew=sedew, aldaa_too=aldaa
+                )
+                db.session.add(wt)
 
     session.niit_onoo  = onoo
     session.duusah_tsag = datetime.utcnow()
     db.session.commit()
 
     try:
-        append_test_result(current_user.ner, session.angi, session.hicheel, onoo, len(answers))
+        suragch_ner = current_user.ner if getattr(current_user, 'is_authenticated', False) else 'Guest'
+        append_test_result(suragch_ner, session.angi, session.hicheel, onoo, len(answers))
     except Exception:
         # Swallow sheet-write errors (optional: enable logging to file). Keep response flow intact.
         print("Append to Google Sheet failed")
