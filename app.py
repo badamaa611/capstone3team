@@ -1,3 +1,8 @@
+try:
+    import psycopg2cffi
+    psycopg2cffi.compat.register()
+except ImportError:
+    pass
 from flask import Flask, render_template, redirect, url_for, request
 from extensions import db, bcrypt, login_manager
 import os
