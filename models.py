@@ -48,6 +48,19 @@ class Question(db.Model):
             "d_hariu": self.d_hariu,
             "tuwshin": self.tuwshin,
             "sedew":   self.sedew,
+            def to_dict(self):
+    return {
+        "id": self.id,
+        "asuult": self.asuult,
+        "a_hariu": self.a_hariu,
+        "b_hariu": self.b_hariu,
+        "v_hariu": self.v_hariu,
+        "g_hariu": self.g_hariu,
+        "d_hariu": self.d_hariu,
+        "tuwshin": self.tuwshin,
+        "sedew": self.sedew,
+        "image_url": self.image_url,   # ← ЭНЭ НЭМНЭ
+    }
         }
 
 
@@ -83,3 +96,8 @@ class WeakTopic(db.Model):
     sedew      = db.Column(db.String(200))
     aldaa_too  = db.Column(db.Integer, default=1)
     updated    = db.Column(db.DateTime, default=datetime.utcnow)
+class Question(db.Model):
+    # ... байгаа талбарууд ...
+    tuwshin = db.Column(db.SmallInteger, nullable=False)
+    image_url = db.Column(db.Text, nullable=True)   # ← ЭНЭ НЭМНЭ
+    created = db.Column(db.DateTime, default=datetime.utcnow)
