@@ -131,8 +131,9 @@ def submit_test():
 
     try:
         append_test_result(current_user.ner, session.angi, session.hicheel, onoo, len(answers))
-    except Exception as e:
-        print("Үр дүнгийн Google Sheet рүү бичихэд алдаа:", e)
+    except Exception:
+        # Swallow sheet-write errors (optional: enable logging to file). Keep response flow intact.
+        print("Append to Google Sheet failed")
 
     sul_list = [
         {"hicheel": h, "sedew": s, "aldaa": a}
