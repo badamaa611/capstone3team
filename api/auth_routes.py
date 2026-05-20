@@ -55,7 +55,7 @@ def logout():
     return redirect(url_for("index"))
 
 @auth_bp.route("/google-login")
-def google.login():
+def google_login():
     if not google.authorized:
         return redirect(url_for("google.login"))
     resp = google.get("/oauth2/v2/userinfo")
