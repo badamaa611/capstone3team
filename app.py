@@ -1,6 +1,5 @@
 try:
-    import psycopg2cffi
-    psycopg2cffi.compat.register()
+    import psycopg2
 except ImportError:
     pass
 from flask import Flask, render_template, redirect, url_for, request
