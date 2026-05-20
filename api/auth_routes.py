@@ -11,7 +11,7 @@ google_bp = make_google_blueprint(
     client_id=os.environ.get("GOOGLE_CLIENT_ID"),
     client_secret=os.environ.get("GOOGLE_CLIENT_SECRET"),
     scope=["profile", "email"],
-    redirect_to="auth.google_login"
+    redirect_to="auth.google.ogin"
 )
 
 @auth_bp.route("/login", methods=["GET", "POST"])
@@ -55,7 +55,7 @@ def logout():
     return redirect(url_for("index"))
 
 @auth_bp.route("/google-login")
-def google_login():
+def google.login():
     if not google.authorized:
         return redirect(url_for("google.login"))
     resp = google.get("/oauth2/v2/userinfo")
