@@ -53,37 +53,39 @@ def import_questions(df):
         added = 0
         for idx, row in df.iterrows():
             # Баганын нэрс сэдэв сэдвүүдээ тохируулах
-            task = row.get('task', '')
-            link = row.get('link', '')
-            zow_hariult = row.get('зөв хариулт', '')
-            angi = str(row.get('Аль анги вэ?', '12'))
-            hicheel = row.get('Хичээл', '')
-            buruuh1 = row.get('Буруу хариулт 1', '')
-            buruuh2 = row.get('Буруу хариулт 2', '')
-            buруuh3 = row.get('Буруу хариулт 3', '')
-            
+            task = str(row.get('task', '') or '').strip()
+            image_url = str(row.get('link', '') or '').strip()
+            correct_answer = str(row.get('зөв хариулт', '') or '').strip()
+            angi = str(row.get('Аль анги вэ?', '12') or '12').strip()
+            hicheel = str(row.get('Хичээл', '') or '').strip()
+            buruuh1 = str(row.get('Буруу хариулт 1', '') or '').strip()
+            buruuh2 = str(row.get('Буруу хариулт 2', '') or '').strip()
+            buruuh3 = str(row.get('Буруу хариулт 3', '') or '').strip()
+
             if not task or not hicheel:
                 continue
-            
+
             # Түвшин сониход нар хуваарилах (санал болгох)
             tuwshin = 2  # дефолт
-            if any(keyword in task.lower() for keyword in ['нэрлэ', 'тодорхойл', 'жагса', 'таних']):
+            task_lower = task.lower()
+            if any(keyword in task_lower for keyword in ['нэрлэ', 'тодорхойл', 'жагса', 'таних']):
                 tuwshin = 1
-            elif any(keyword in task.lower() for keyword in ['шинжил', 'дүгнэ', 'үнэл']):
+            elif any(keyword in task_lower for keyword in ['шинжил', 'дүгнэ', 'үнэл']):
                 tuwshin = 3
-            
+
             # Асуулт DB-д оруулах
             q = Question(
                 angi=angi,
                 hicheel=hicheel,
-                sedew=hicheel,  # сэдэв нь хичээлтэй адил гэж авна
+                sedew=hicheel,
                 asuult=task,
-                a_hariu=zow_hariult,
+                a_hariu=correct_answer,
                 b_hariu=buruuh1,
                 v_hariu=buruuh2,
-                g_hariu=buруuh3,
-                d_hariu=link if link else '',
-                zow_hariult='A',  # A нь зөв хариулт
+                g_hariu=buruuh3,
+                d_hariu='',
+                image_url=image_url,
+                zow_hariult='A',
                 tuwshin=tuwshin,
             )
             db.session.add(q)

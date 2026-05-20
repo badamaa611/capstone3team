@@ -11,7 +11,7 @@ async function loadTest() {
   const angi     = params.get("angi")    || "12";
   const hicheel  = params.get("hicheel") || "Биологи";
 
-  const res  = await fetch(`/api/test/generate?angi=${angi}&hicheel=${hicheel}&too=30`);
+  const res  = await fetch(`/api/test/generate?angi=${angi}&hicheel=${encodeURIComponent(hicheel)}&too=30`);
   const data = await res.json();
   questions  = data.asuultuud || [];
 
@@ -29,15 +29,14 @@ function showQuestion(idx) {
   document.getElementById("current-q").textContent = idx + 1;
   document.getElementById("q-text").textContent = q.asuult;
 
-// Зураг харуулах
-const imgBox = document.getElementById("q-image-box");
-const img = document.getElementById("q-image");
-if (q.image_url && q.image_url.trim() !== '') {
-  img.src = q.image_url;
-  imgBox.style.display = "block";
-} else {
-  imgBox.style.display = "none";
-}
+  const imgBox = document.getElementById("q-image-box");
+  const img = document.getElementById("q-image");
+  if (q.image_url && q.image_url.trim() !== '') {
+    img.src = q.image_url;
+    imgBox.style.display = "block";
+  } else {
+    imgBox.style.display = "none";
+  }
 
   const optBox  = document.getElementById("options");
   const labels  = ["A","B","V","G","D"];
@@ -61,7 +60,7 @@ if (q.image_url && q.image_url.trim() !== '') {
 
 function selectAnswer(qId, hariult) {
   answers[qId] = hariult;
-  document.querySelectorAll(".option-btn").forEach((btn, i) => {
+  document.querySelectorAll(".option-btn").forEach((btn) => {
     btn.classList.toggle("selected", btn.textContent.startsWith(hariult + "."));
   });
 }
@@ -78,8 +77,12 @@ async function finishTest() {
     body: JSON.stringify({ answers })
   });
   const data = await res.json();
-  // Үр дүнгийн хуудас руу шилжих
-  location.href = `/result?onoo=${data.onoo}`;
+  const params = new URLSearchParams(window.location.search);
+  const angi = params.get("angi") || "12";
+  const hicheel = params.get("hicheel") || "Биологи";
+  const resultData = { ...data, angi, hicheel };
+  sessionStorage.setItem('lastTestResult', JSON.stringify(resultData));
+  location.href = `/result?onoo=${data.onoo}&niit=${data.niit}`;
 }
 
 function startTimer() {
@@ -96,10 +99,76 @@ function startTimer() {
   }, 1000);
 }
 
+async function loadResult() {
+  const params = new URLSearchParams(window.location.search);
+  const onoo = params.get("onoo") || "0";
+  const niit = params.get("niit") || "0";
+
+  const scoreEl = document.getElementById("onoo");
+  if (scoreEl) scoreEl.textContent = onoo;
+  const totalEl = document.querySelector(".score-circle small");
+  if (totalEl) totalEl.textContent = `/${niit}`;
+
+  const stored = sessionStorage.getItem('lastTestResult');
+  if (!stored) return;
+  const result = JSON.parse(stored);
+  if (!result) return;
+
+  const list = document.getElementById("weak-list");
+  if (list) {
+    if (result.sul_sedewnuud && result.sul_sedewnuud.length) {
+      list.innerHTML = result.sul_sedewnuud.map(item =>
+        `<div class="weak-item"><strong>${item.hicheel}</strong>: ${item.sedew} (${item.aldaa} алдаа)</div>`
+      ).join('');
+    } else {
+      list.innerHTML = '<p>Алдаа олдсонгүй эсвэл сул сэдэв бүртгэгдээгүй байна.</p>';
+    }
+  }
+}
+
 async function loadAIQuestions() {
-  document.getElementById("ai-section").style.display = "block";
-  // TODO: сул сэдвүүдийн жагсаалтаас анхны сэдвийг авч AI-руу илгээх
+  const stored = sessionStorage.getItem('lastTestResult');
+  if (!stored) {
+    alert('Тестийн үр дүн олдсонгүй. Тестийг эхлээд өгөөд, дараа AI асуулт үүсгэнэ үү.');
+    return;
+  }
+
+  const result = JSON.parse(stored);
+  const weak = result.sul_sedewnuud && result.sul_sedewnuud.length ? result.sul_sedewnuud[0] : null;
+  if (!weak) {
+    alert('Сул сэдэв байхгүй тул AI асуулт үүсгэж чадахгүй байна.');
+    return;
+  }
+
+  const aiSection = document.getElementById("ai-section");
+  const aiList = document.getElementById("ai-questions-list");
+  if (!aiSection || !aiList) return;
+
+  aiSection.style.display = "block";
+  aiList.innerHTML = '<p>AI асуулт үүсгэж байна...</p>';
+
+  const res = await fetch('/api/generate-questions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      angi: result.angi || '12',
+      hicheel: weak.hicheel || '',
+      sedew: weak.sedew || '',
+      too: 3
+    })
+  });
+
+  const data = await res.json();
+  if (!data.asuultuud || !data.asuultuud.length) {
+    aiList.innerHTML = '<p>AI-аар асуулт үүсгэж чадсангүй.</p>';
+    return;
+  }
+
+  aiList.innerHTML = data.asuultuud.map((q, idx) =>
+    `<div class="ai-question"><strong>${idx + 1}. ${q.asuult}</strong><p>A. ${q.a_hariu}</p><p>B. ${q.b_hariu}</p><p>В. ${q.v_hariu}</p><p>Г. ${q.g_hariu}</p></div>`
+  ).join('');
 }
 
 // Тест хуудсан дээр байвал ачааллана
 if (document.getElementById("question-box")) loadTest();
+if (document.getElementById("onoo")) loadResult();

@@ -31,9 +31,19 @@ def generate_test():
     heregel_too = too - medleg_too - chadwar_too
 
     def get_questions(tuwshin, count):
-        q = Question.query.filter_by(
-            angi=angi, hicheel=hicheel, tuwshin=tuwshin
+        subject = hicheel.strip()
+        q = Question.query.filter(
+            Question.angi == angi,
+            Question.tuwshin == tuwshin,
+            Question.hicheel.ilike(f"%{subject}%")
         ).all()
+        if len(q) < count:
+            q = Question.query.filter(
+                Question.angi == angi,
+                Question.hicheel.ilike(f"%{subject}%")
+            ).all()
+        if len(q) < count:
+            q = Question.query.filter(Question.angi == angi).all()
         return random.sample(q, min(count, len(q)))
 
     asuultuud = (
@@ -41,6 +51,9 @@ def generate_test():
         get_questions(2, chadwar_too) +
         get_questions(3, heregel_too)
     )
+    if not asuultuud:
+        # Хичээл олдохгүй бол анги дээрээс суурь асуултууд авах
+        asuultuud = Question.query.filter(Question.angi == angi).limit(10).all()
     random.shuffle(asuultuud)
 
     # Тестийн сесс үүсгэх

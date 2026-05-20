@@ -5,6 +5,7 @@ from extensions import db, bcrypt, login_manager
 from models import User
 from api.auth_routes import auth_bp
 from api.test_routes import test_bp
+from api.ai_routes import ai_bp
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-12345")
@@ -23,6 +24,7 @@ login_manager.login_view = "auth.login"
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(test_bp, url_prefix="/api")
+app.register_blueprint(ai_bp, url_prefix="/api")
 
 @login_manager.user_loader
 def load_user(user_id):
