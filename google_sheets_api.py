@@ -98,6 +98,12 @@ def get_gspread_client():
 
 
 def append_test_result(suragch_ner, angi, hicheel, onoo, too):
+    # Respect development mock flag to avoid writing to real Google Sheets.
+    mock_flag = os.getenv("MOCK_GOOGLE_SHEETS", "false").lower() in ("1", "true", "yes")
+    if mock_flag:
+        print(f"MOCK: would append result for {suragch_ner=} {angi=} {hicheel=} {onoo=} {too=}")
+        return
+
     client = get_gspread_client()
     sh = client.open_by_key(SHEET_ID)
     ws = sh.worksheet("Үр дүн")
