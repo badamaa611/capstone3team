@@ -33,22 +33,29 @@ class Question(db.Model):
     g_hariu       = db.Column(db.Text)
     d_hariu       = db.Column(db.Text)
     zow_hariult   = db.Column(db.String(1), nullable=False) 
-    image_url = db.Column(db.String(500))  # A/B/V/G/D
+    image_url     = db.Column(db.String(500), nullable=True)  # Зургаар асуулт оруулахад зориулав
     tuwshin       = db.Column(db.SmallInteger, nullable=False) # 1/2/3
     created       = db.Column(db.DateTime, default=datetime.utcnow)
-def to_dict(self):
+
+    def to_dict(self):
         return {
             "id": self.id,
+            "angi": self.angi,
+            "hicheel": self.hicheel,
+            "sedew": self.sedew,
+            "blueprint_kod": self.blueprint_kod,
             "asuult": self.asuult,
             "a_hariu": self.a_hariu,
             "b_hariu": self.b_hariu,
             "v_hariu": self.v_hariu,
             "g_hariu": self.g_hariu,
             "d_hariu": self.d_hariu,
+            "zow_hariult": self.zow_hariult,
             "tuwshin": self.tuwshin,
-            "sedew": self.sedew,
-            "image_url": self.image_url  # Хэрэв датабэйсд байгаа бол
+            "image_url": self.image_url,
+            "created": self.created.isoformat() if self.created else None
         }
+
 
 class TestSession(db.Model):
     __tablename__ = "test_sessions"
@@ -82,8 +89,3 @@ class WeakTopic(db.Model):
     sedew      = db.Column(db.String(200))
     aldaa_too  = db.Column(db.Integer, default=1)
     updated    = db.Column(db.DateTime, default=datetime.utcnow)
-class Question(db.Model):
-    # ... байгаа талбарууд ...
-    tuwshin = db.Column(db.SmallInteger, nullable=False)
-    image_url = db.Column(db.Text, nullable=True)   # ← ЭНЭ НЭМНЭ
-    created = db.Column(db.DateTime, default=datetime.utcnow)
