@@ -101,7 +101,8 @@ def append_test_result(suragch_ner, angi, hicheel, onoo, too):
     # Respect development mock flag to avoid writing to real Google Sheets.
     mock_flag = os.getenv("MOCK_GOOGLE_SHEETS", "false").lower() in ("1", "true", "yes")
     if mock_flag:
-        print(f"MOCK: would append result for {suragch_ner=} {angi=} {hicheel=} {onoo=} {too=}")
+        # Avoid printing user-provided non-ASCII text to consoles that may not support it.
+        print("MOCK: append skipped (MOCK_GOOGLE_SHEETS=true)")
         return
 
     client = get_gspread_client()
