@@ -4,6 +4,7 @@ from flask_dance.contrib.google import make_google_blueprint, google
 from extensions import db, bcrypt, login_manager
 from models import User
 from api.auth_routes import auth_bp
+from api.test_routes import test_bp
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-12345")
@@ -21,6 +22,7 @@ login_manager.init_app(app)
 login_manager.login_view = "auth.login"
 
 app.register_blueprint(auth_bp)
+app.register_blueprint(test_bp, url_prefix="/api")
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -61,6 +63,19 @@ def logout():
 @app.route("/")
 def index():
     return render_template("index.html")
+
+@app.route("/test")
+def test_page():
+    from flask import request
+    angi = request.args.get("angi", "12")
+    hicheel = request.args.get("hicheel", "Биологи")
+    return render_template("test.html", angi=angi, hicheel=hicheel)
+
+@app.route("/result")
+def result_page():
+    from flask import request
+    onoo = request.args.get("onoo", "0")
+    return render_template("result.html", onoo=onoo)
 
 with app.app_context():
     db.create_all()
