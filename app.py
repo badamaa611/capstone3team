@@ -75,3 +75,7 @@ def google_callback():
 def logout():
     logout_user()
     return redirect(url_for("index"))
+@app.route("/")
+def index():
+    # templates хавтас доторх index.html файлыг уншиж харуулна
+    return render_template("index.html")
