@@ -1,9 +1,9 @@
 ﻿import os
 from flask import Flask, render_template, redirect, url_for
 from flask_dance.contrib.google import make_google_blueprint, google
-from flask_login import login_user
+from flask_login import login_user, current_user
 from extensions import db, bcrypt, login_manager
-from models import User
+from models import User, TestSession
 from api.auth_routes import auth_bp
 from api.test_routes import test_bp
 from api.ai_routes import ai_bp
@@ -67,7 +67,25 @@ def create_app():
 
     @app.route("/")
     def index():
-        return render_template("index.html")
+        progress_stats = []
+        if current_user.is_authenticated:
+            sessions = TestSession.query.filter_by(suragch_id=current_user.id).all()
+            stats = {}
+            for s in sessions:
+                if not s.too:
+                    continue
+                pct = round((s.niit_onoo or 0) / s.too * 100)
+                subject = s.hicheel or "Тодорхойгүй"
+                stats.setdefault(subject, []).append(pct)
+            for subject, values in stats.items():
+                avg_pct = round(sum(values) / len(values))
+                progress_stats.append({
+                    "hicheel": subject,
+                    "avg": avg_pct,
+                    "tests": len(values)
+                })
+            progress_stats.sort(key=lambda x: x["avg"], reverse=True)
+        return render_template("index.html", progress_stats=progress_stats)
 
     @app.route("/test")
     def test_page():
