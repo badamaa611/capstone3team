@@ -1,8 +1,9 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask import Flask, render_template, redirect, url_for
 from flask_dance.contrib.google import make_google_blueprint, google
+from extensions import db, bcrypt, login_manager
+from models import User
+from api.auth_routes import auth_bp
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-12345")
@@ -14,16 +15,12 @@ if raw_db_url.startswith("postgres://"):
 app.config["SQLALCHEMY_DATABASE_URI"] = raw_db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-db = SQLAlchemy(app)
-login_manager = LoginManager(app)
-login_manager.login_view = "google.login"
+db.init_app(app)
+bcrypt.init_app(app)
+login_manager.init_app(app)
+login_manager.login_view = "auth.login"
 
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    ner = db.Column(db.String(100))
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    nuuts_ug = db.Column(db.String(100))
-    duwer = db.Column(db.String(20), default="suragch")
+app.register_blueprint(auth_bp)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -56,8 +53,8 @@ def google_callback():
     return redirect(url_for("index"))
 
 @app.route("/logout")
-@login_required
 def logout():
+    from flask_login import logout_user
     logout_user()
     return redirect(url_for("index"))
 
