@@ -1,6 +1,39 @@
+import pandas as pd
+import requests
+from io import StringIO
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
+from flask_login import login_required, current_user
+
+main = Blueprint('main', __name__)
+
+# Таны Google Sheet-ийн CSV хэлбэрээр татах линк
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1HkJZUebgNFtYghS55KUKcCjNVx7A4O2huEvyv1d331o/export?format=csv&gid=830552134"
+
+def convert_imgbb_url(url):
+    """
+    ImgBB-ийн энгийн линкийг Flask дээр шууд харагдах 
+    жинхэнэ зургийн линк рүү хөрвүүлэх функц
+    """
+    if not url or pd.isna(url):
+        return None
+    
+    url = str(url).strip()
+    
+    # Хэрэв хэрэглэгч ibb.co гэсэн богино линк оруулсан бол хөрвүүлнэ
+    # Жишээ нь: https://ibb.co/xyz123 -> https://i.ibb.co/xyz123/image.png
+    if "ibb.co" in url and "i.ibb.co" not in url:
+        # Линкийн төгсгөл дэх ID-г салгаж авах
+        parts = url.rstrip('/').split('/')
+        img_id = parts[-1]
+        # ImgBB-ийн шууд зургийн бүтэц рүү шилжүүлэх
+        return f"https://i.ibb.co/{img_id}/image.png"
+        
+    return url
+
 @main.route('/dashboard')
 @login_required
 def dashboard():
+    # Frontend-ээс ирж буй анги, хичээлийн мэдээллийг авах
     angi = request.args.get('angi')
     hicheel = request.args.get('hicheel')
     
@@ -9,45 +42,39 @@ def dashboard():
         return redirect(url_for('main.index'))
         
     try:
+        # Google Sheet-ээс өгөгдлийг шууд унших
         response = requests.get(SHEET_CSV_URL)
         response.encoding = 'utf-8'
         
+        # Pandas-аар DataFrame үүсгэх
         df = pd.read_csv(StringIO(response.text))
+        
+        # Баганын нэрсийг цэвэрлэх (зайг устгах)
         df.columns = [c.strip() for c in df.columns]
         
-        # Хоосон мөрүүдийг устгах эсвэл цэвэрлэх
-        df = df.dropna(subset=['Асуулт'])
-        
-        # Анги, хичээлээр маш нарийн шүүх (Зайг устгаж, жижиг үсгээр харьцуулна)
+        # Сонгосон анги болон хичээлээр шүүлтүүр хийх
         filtered_df = df[
-            (df['Анги'].astype(str).str.strip() == str(angi).strip()) & 
-            (df['Хичээл'].astype(str).str.strip().str.lower() == str(hicheel).strip().str.lower())
+            (df['Анги'].astype(str) == str(angi)) & 
+            (df['Хичээл'].str.strip().str.lower() == str(hicheel).strip().str.lower())
         ]
         
+        # Бүх асуултыг жагсаалт болгож хөрвүүлэх
         questions = []
         for idx, row in filtered_df.iterrows():
-            # Зургийн линкийг цэвэрлэх
-            img_url = row.get('Зураг', '')
-            if pd.isna(img_url) or str(img_url).strip() == '' or 'http' not in str(img_url):
-                img_url = None
-            else:
-                img_url = str(img_url).strip()
+            raw_image_url = row.get('Зураг', None)
             
-            # Зөв хариултыг кирилл/англи аль алиныг нь дэмжихээр цэвэрлэх
-            correct_ans = str(row.get('Зөв хариулт', '')).strip().upper()
-            # Кирилл А, Б, В, Г-г Англи A, B, C, D рүү хөрвүүлэх (зөрүү холболтоос сэргийлнэ)
-            mapping = {'А': 'A', 'Б': 'B', 'В': 'C', 'Г': 'D', 'A': 'A', 'B': 'B', 'C': 'C', 'D': 'D'}
-            correct_ans = mapping.get(correct_ans, correct_ans)
+            # Ирж буй линкийг ImgBB-ийн шууд линк рүү хөрвүүлэх функцийг ажиллуулах
+            final_image_url = convert_imgbb_url(raw_image_url)
 
             questions.append({
                 'id': idx,
                 'question_text': row.get('Асуулт', ''),
-                'image_url': img_url,
+                'image_url': final_image_url, # Зассан линкийг энд оноож байна
                 'opt_a': row.get('А', ''),
                 'opt_b': row.get('Б', ''),
                 'opt_c': row.get('В', ''),
                 'opt_d': row.get('Г', ''),
-                'correct': correct_ans
+                'correct': str(row.get('Зөв хариулт', '')).strip().upper()
             })
             
         return render_template('quiz.html', questions=questions, angi=angi, hicheel=hicheel)
