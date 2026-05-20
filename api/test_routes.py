@@ -6,6 +6,12 @@ from google_sheets_api import import_sheet_questions, append_test_result
 import random
 from datetime import datetime
 from sqlalchemy import text
+import os, json
+
+try:
+    import google.generativeai as genai
+except Exception:
+    genai = None
 
 # DB migration — image_url багана нэмэх
 def migrate_db(app):
@@ -143,14 +149,41 @@ def submit_test():
     except Exception:
         # Swallow sheet-write errors (optional: enable logging to file). Keep response flow intact.
         print("Append to Google Sheet failed")
+    # Optionally generate suggested practice questions for weak topics using Gemini
+    def generate_ai_questions(angi, hicheel, sedew, too=3):
+        api_key = os.getenv("GOOGLE_API_KEY", "")
+        if not genai or not api_key:
+            return []
+        try:
+            genai.configure(api_key=api_key)
+            model_name = os.getenv("GOOGLE_GEMINI_MODEL", "models/gemini-1.5-mini")
+            model = genai.GenerativeModel(model_name)
+            prompt = (
+                f"Та Монгол улсын ерөнхий боловсролын {angi}-р ангийн {hicheel} хичээлийн "
+                f"{sedew} сэдвээр {too} олон сонголтот асуулт үүсгэнэ үү.\n\n"
+                "Зөвхөн JSON массив форматаар буцаана уу."
+            )
+            chat = genai.ChatSession(model)
+            response = chat.send_message(prompt)
+            text = getattr(response, "text", None) or getattr(response, "content", None) or ""
+            return json.loads(text)
+        except Exception:
+            return []
 
     sul_list = [
         {"hicheel": h, "sedew": s, "aldaa": a}
         for (h, s), a in sul_sedewnuud.items()
     ]
+
+    suggested = {}
+    for (h, s), a in sul_sedewnuud.items():
+        # generate up to 3 practice questions per weak topic (best-effort)
+        suggested_key = f"{h}||{s}"
+        suggested[suggested_key] = generate_ai_questions(session.angi, h, s, too=3)
     return jsonify({
         "onoo": onoo,
         "niit": len(answers),
         "huvi": round(onoo / len(answers) * 100) if answers else 0,
-        "sul_sedewnuud": sul_list
+        "sul_sedewnuud": sul_list,
+        "suggested_questions": suggested
     })
