@@ -84,3 +84,25 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()  # Supabase дээр User хүснэгт байхгүй бол автомат үүсгэнэ
     app.run(debug=True)
+    # Google-ээр амжилттай нэвтэрсний дараа дуудагдах функц
+@app.route("/login/google/authorized")
+def google_callback():
+    if not google.authorized:
+        return redirect(url_for("google.login"))
+        
+    resp = google.get("/oauth2/v2/userinfo")
+    if not resp.ok:
+        return "Google-ээс мэдээлэл авахад алдаа гарлаа.", 500
+        
+    info = resp.json()
+    email = info["email"]
+    ner = info.get("name", "Хэрэглэгч")
+    
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        user = User(ner=ner, email=email, nuuts_ug="google-auth", duwer="suragch")
+        db.session.add(user)
+        db.session.commit()
+        
+    login_user(user)
+    return redirect(url_for("index"))
