@@ -13,6 +13,17 @@ async function loadTest() {
   const hicheel  = params.get("hicheel") || "Биологи";
 
   const res  = await fetch(`/api/test/generate?angi=${angi}&hicheel=${encodeURIComponent(hicheel)}&too=30`);
+  const ct = res.headers.get('content-type') || '';
+  if (!res.ok || !ct.includes('application/json')) {
+    // Likely redirected to login or an error occurred
+    if (res.status === 401 || res.status === 302 || ct.includes('text/html')) {
+      // Redirect browser to login page
+      window.location.href = '/login';
+      return;
+    }
+    document.getElementById("question-box").innerHTML = '<p>Асуулт ачааллах үед алдаа гарлаа. Хуудас дахин ачааллана уу.</p>';
+    return;
+  }
   const data = await res.json();
   questions      = data.asuultuud || [];
   testSessionId  = data.session_id || null;

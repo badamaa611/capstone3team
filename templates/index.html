@@ -28,6 +28,9 @@
     .nbtn:hover{opacity:.92;transform:translateY(-1px)}
 
     .container{max-width:960px;margin:0 auto;padding:0 24px}
+    /* Background bubble canvas */
+    #bb{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0.95}
+    .ct{position:relative;z-index:1}
     .hero{padding:1rem 0 1rem;text-align:center;margin-top:0}
     .htag{display:inline-flex;align-items:center;gap:6px;font-size:10px;color:var(--blue2);background:var(--blue1);padding:6px 14px;border-radius:99px;margin-bottom:0.75rem;border:.5px solid rgba(55,138,221,0.2)}
     .hh{font-size:2.2rem;font-weight:700;display:block;margin:0 auto 0.6rem;max-width:680px;color:var(--text);line-height:1.05;text-transform:capitalize}
@@ -293,10 +296,21 @@ function initBB(){
   const cv=document.getElementById('bb');
   cv.width=window.innerWidth;cv.height=window.innerHeight;
   const ctx=cv.getContext('2d');
-  const cols=dk
-    ?['rgba(56,138,221,0.06)','rgba(127,119,221,0.05)','rgba(29,158,117,0.05)','rgba(96,165,250,0.04)']
-    :['rgba(56,138,221,0.07)','rgba(127,119,221,0.06)','rgba(29,158,117,0.06)','rgba(186,212,238,0.09)'];
-  const bs=Array.from({length:22},()=>({x:Math.random()*cv.width,y:Math.random()*cv.height,r:18+Math.random()*60,dx:(Math.random()-.5)*.3,dy:(Math.random()-.5)*.3,c:cols[Math.floor(Math.random()*cols.length)]}));
+  const cols = dk
+    ? ['rgba(56,138,221,0.06)','rgba(127,119,221,0.05)','rgba(29,158,117,0.05)','rgba(96,165,250,0.04)']
+    : ['rgba(56,138,221,0.07)','rgba(127,119,221,0.06)','rgba(29,158,117,0.06)','rgba(186,212,238,0.09)'];
+
+  // Responsive bubble count for performance
+  const count = Math.max(6, Math.min(28, Math.floor(cv.width / 80 + cv.height / 300)));
+  const smallScreen = cv.width < 520;
+  const bs = Array.from({ length: count }, () => ({
+    x: Math.random() * cv.width,
+    y: Math.random() * cv.height,
+    r: (8 + Math.random() * (smallScreen ? 30 : 60)) * (smallScreen ? 0.9 : 1),
+    dx: (Math.random() - 0.5) * (smallScreen ? 0.6 : 0.4),
+    dy: (Math.random() - 0.5) * (smallScreen ? 0.6 : 0.4),
+    c: cols[Math.floor(Math.random() * cols.length)]
+  }));
   if(window._bA)cancelAnimationFrame(window._bA);
   function draw(){
     ctx.clearRect(0,0,cv.width,cv.height);
