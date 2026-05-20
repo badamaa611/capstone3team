@@ -153,7 +153,26 @@ def submit_test():
     def generate_ai_questions(angi, hicheel, sedew, too=3):
         api_key = os.getenv("GOOGLE_API_KEY", "")
         if not genai or not api_key:
-            return []
+            # Fallback: pull similar questions from the local DB when AI is unavailable
+            try:
+                qs = []
+                if sedew:
+                    qs = Question.query.filter(
+                        Question.hicheel.ilike(f"%{hicheel}%"),
+                        Question.sedew.ilike(f"%{sedew}%")
+                    ).all()
+                else:
+                    qs = Question.query.filter(
+                        Question.hicheel.ilike(f"%{hicheel}%")
+                    ).all()
+                if not qs:
+                    return []
+                # sample up to `too` questions and return their dict representation
+                import random as _random
+                picked = _random.sample(qs, min(too, len(qs)))
+                return [q.to_dict() for q in picked]
+            except Exception:
+                return []
         try:
             genai.configure(api_key=api_key)
             model_name = os.getenv("GOOGLE_GEMINI_MODEL", "models/gemini-1.5-mini")
@@ -180,6 +199,12 @@ def submit_test():
         # generate up to 3 practice questions per weak topic (best-effort)
         suggested_key = f"{h}||{s}"
         suggested[suggested_key] = generate_ai_questions(session.angi, h, s, too=3)
+
+    # If no weak topics found, provide a small set of practice questions for the subject
+    if not suggested:
+        fallback_list = generate_ai_questions(session.angi, session.hicheel, "", too=3)
+        if fallback_list:
+            suggested[f"{session.hicheel}||general"] = fallback_list
     return jsonify({
         "onoo": onoo,
         "niit": len(answers),

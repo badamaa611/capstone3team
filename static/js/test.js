@@ -156,7 +156,11 @@ async function loadAIQuestions() {
 
   const result = JSON.parse(stored);
   const weak = result.sul_sedewnuud && result.sul_sedewnuud.length ? result.sul_sedewnuud[0] : null;
-  if (!weak) {
+  // Prefer suggested questions from the submit response (fallback to live AI generation)
+  const suggested = result.suggested_questions || {};
+  const hasSuggested = suggested && Object.keys(suggested).length && Object.values(suggested).some(v=>v && v.length);
+
+  if (!weak && !hasSuggested) {
     alert('Сул сэдэв байхгүй тул AI асуулт үүсгэж чадахгүй байна.');
     return;
   }
@@ -167,14 +171,25 @@ async function loadAIQuestions() {
 
   aiSection.style.display = "block";
   aiList.innerHTML = '<p>AI асуулт үүсгэж байна...</p>';
+  // If submit response already included suggested questions, use them
+  if (hasSuggested) {
+    // pick the first non-empty suggestion list
+    let picked = [];
+    for (const k of Object.keys(suggested)) { if (suggested[k] && suggested[k].length) { picked = suggested[k]; break; } }
+    aiList.innerHTML = picked.map((q, idx) =>
+      `<div class="ai-question"><strong>${idx + 1}. ${q.asuult}</strong><p>A. ${q.a_hariu}</p><p>B. ${q.b_hariu}</p><p>В. ${q.v_hariu}</p><p>Г. ${q.g_hariu}</p></div>`
+    ).join('');
+    return;
+  }
 
+  // Otherwise, call live AI generation endpoint
   const res = await fetch('/api/generate-questions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       angi: result.angi || '12',
-      hicheel: weak.hicheel || '',
-      sedew: weak.sedew || '',
+      hicheel: weak ? (weak.hicheel || '') : (result.hicheel || ''),
+      sedew: weak ? (weak.sedew || '') : '',
       too: 3
     })
   });
