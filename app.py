@@ -79,3 +79,12 @@ def logout():
 def index():
     # templates хавтас доторх index.html файлыг уншиж харуулна
     return render_template("index.html")
+@app.route("/")
+def index():
+    # templates хавтас доторх index.html файлыг уншиж харуулна
+    return render_template("index.html")
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()  # Supabase дээр User хүснэгт байхгүй бол автомат үүсгэнэ
+    app.run(debug=True)
