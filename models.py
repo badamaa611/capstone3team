@@ -36,8 +36,7 @@ class Question(db.Model):
     image_url = db.Column(db.String(500))  # A/B/V/G/D
     tuwshin       = db.Column(db.SmallInteger, nullable=False) # 1/2/3
     created       = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def to_dict(self):
+def to_dict(self):
         return {
             "id": self.id,
             "asuult": self.asuult,
@@ -47,22 +46,9 @@ class Question(db.Model):
             "g_hariu": self.g_hariu,
             "d_hariu": self.d_hariu,
             "tuwshin": self.tuwshin,
-            "sedew":   self.sedew,
-            def to_dict(self):
-    return {
-        "id": self.id,
-        "asuult": self.asuult,
-        "a_hariu": self.a_hariu,
-        "b_hariu": self.b_hariu,
-        "v_hariu": self.v_hariu,
-        "g_hariu": self.g_hariu,
-        "d_hariu": self.d_hariu,
-        "tuwshin": self.tuwshin,
-        "sedew": self.sedew,
-        "image_url": self.image_url,   # ← ЭНЭ НЭМНЭ
-    }
+            "sedew": self.sedew,
+            "image_url": self.image_url  # Хэрэв датабэйсд байгаа бол
         }
-
 
 class TestSession(db.Model):
     __tablename__ = "test_sessions"
