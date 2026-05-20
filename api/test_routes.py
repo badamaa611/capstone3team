@@ -59,7 +59,16 @@ def generate_test():
         asuultuud = Question.query.filter(Question.angi == angi).limit(10).all()
     random.shuffle(asuultuud)
 
-    # Тестийн сесс үүсгэх
+    # Remove duplicate questions (some buckets may overlap)
+    seen_ids = set()
+    unique_qs = []
+    for q in asuultuud:
+        if q.id not in seen_ids:
+            seen_ids.add(q.id)
+            unique_qs.append(q)
+    asuultuud = unique_qs
+
+    # Тестийн сесс үүсгэх (тоо одоо дүнгэслэгдсэн unique асуултуудаар)
     session = TestSession(
         suragch_id=current_user.id,
         angi=angi, hicheel=hicheel, too=len(asuultuud)
