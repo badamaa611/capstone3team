@@ -1,25 +1,57 @@
-# pip install flask-dance
-from flask_dance.contrib.google import make_google_blueprint, google
+@main.route('/dashboard')
+@login_required
+def dashboard():
+    angi = request.args.get('angi')
+    hicheel = request.args.get('hicheel')
+    
+    if not angi or not hicheel:
+        flash("Анги болон хичээл сонгогдоогүй байна!")
+        return redirect(url_for('main.index'))
+        
+    try:
+        response = requests.get(SHEET_CSV_URL)
+        response.encoding = 'utf-8'
+        
+        df = pd.read_csv(StringIO(response.text))
+        df.columns = [c.strip() for c in df.columns]
+        
+        # Хоосон мөрүүдийг устгах эсвэл цэвэрлэх
+        df = df.dropna(subset=['Асуулт'])
+        
+        # Анги, хичээлээр маш нарийн шүүх (Зайг устгаж, жижиг үсгээр харьцуулна)
+        filtered_df = df[
+            (df['Анги'].astype(str).str.strip() == str(angi).strip()) & 
+            (df['Хичээл'].astype(str).str.strip().str.lower() == str(hicheel).strip().str.lower())
+        ]
+        
+        questions = []
+        for idx, row in filtered_df.iterrows():
+            # Зургийн линкийг цэвэрлэх
+            img_url = row.get('Зураг', '')
+            if pd.isna(img_url) or str(img_url).strip() == '' or 'http' not in str(img_url):
+                img_url = None
+            else:
+                img_url = str(img_url).strip()
+            
+            # Зөв хариултыг кирилл/англи аль алиныг нь дэмжихээр цэвэрлэх
+            correct_ans = str(row.get('Зөв хариулт', '')).strip().upper()
+            # Кирилл А, Б, В, Г-г Англи A, B, C, D рүү хөрвүүлэх (зөрүү холболтоос сэргийлнэ)
+            mapping = {'А': 'A', 'Б': 'B', 'В': 'C', 'Г': 'D', 'A': 'A', 'B': 'B', 'C': 'C', 'D': 'D'}
+            correct_ans = mapping.get(correct_ans, correct_ans)
 
-google_bp = make_google_blueprint(
-    client_id="ЧИНИЙ_CLIENT_ID",
-    client_secret="ЧИНИЙ_CLIENT_SECRET",
-    scope=["profile", "email"]
-)
-app.register_blueprint(google_bp, url_prefix="/login")
-
-@app.route("/google-login")
-def google_login():
-    if not google.authorized:
-        return redirect(url_for("google.login"))
-    resp = google.get("/oauth2/v2/userinfo")
-    email = resp.json()["email"]
-    ner = resp.json()["name"]
-    # DB-д хадгалах эсвэл нэвтрүүлэх
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        user = User(ner=ner, email=email, nuuts_ug="google-auth", duwer="suragch")
-        db.session.add(user)
-        db.session.commit()
-    login_user(user)
-    return redirect(url_for("test_page"))
+            questions.append({
+                'id': idx,
+                'question_text': row.get('Асуулт', ''),
+                'image_url': img_url,
+                'opt_a': row.get('А', ''),
+                'opt_b': row.get('Б', ''),
+                'opt_c': row.get('В', ''),
+                'opt_d': row.get('Г', ''),
+                'correct': correct_ans
+            })
+            
+        return render_template('quiz.html', questions=questions, angi=angi, hicheel=hicheel)
+        
+    except Exception as e:
+        print(f"Алдаа гарлаа: {e}")
+        return f"Google Sheet-ээс өгөгдөл уншихад алдаа гарлаа: {str(e)}", 500
