@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
 from extensions import db
 from models import Question, TestSession, TestAnswer, WeakTopic
-from api.google_sheet_api import import_sheet_questions, append_test_result
+from google_sheets_api import import_sheet_questions, append_test_result
 import random
 from datetime import datetime
 from sqlalchemy import text
