@@ -1,21 +1,24 @@
 import os
 from flask import Flask, render_template, redirect, url_for
 from flask_dance.contrib.google import make_google_blueprint, google
+from flask_login import login_user
 from extensions import db, bcrypt, login_manager
 from models import User
 from api.auth_routes import auth_bp
 from api.test_routes import test_bp
 from api.ai_routes import ai_bp
 
-app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-12345")
 
-raw_db_url = os.environ.get("DATABASE_URL", "sqlite:///users.db")
-if raw_db_url.startswith("postgres://"):
-    raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
+def create_app():
+    app = Flask(__name__)
+    app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-12345")
 
-app.config["SQLALCHEMY_DATABASE_URI"] = raw_db_url
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    raw_db_url = os.environ.get("DATABASE_URL", "sqlite:///users.db")
+    if raw_db_url.startswith("postgres://"):
+        raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = raw_db_url
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
 bcrypt.init_app(app)

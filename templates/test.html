@@ -28,9 +28,10 @@
 </div>
 
 <div class="test-nav">
-  <button class="btn-secondary" id="prev-btn" onclick="prevQuestion()">← Өмнөх</button>
-  <button class="btn-primary"   id="next-btn" onclick="nextQuestion()">Дараах →</button>
-  <button class="btn-danger"    id="finish-btn" style="display:none" onclick="finishTest()">Дуусгах</button>
+  <button class="btn-secondary" type="button" onclick="window.location.href='/'">← Нүүр хуудас</button>
+  <button class="btn-secondary" id="prev-btn" type="button" onclick="prevQuestion()">← Өмнөх</button>
+  <button class="btn-primary" id="next-btn" type="button" onclick="nextQuestion()">Дараах →</button>
+  <button class="btn-danger" id="finish-btn" type="button" style="display:none" onclick="finishTest()">Дуусгах</button>
 </div>
 {% endblock %}
 {% block extra_js %}
