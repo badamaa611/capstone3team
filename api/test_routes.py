@@ -2,9 +2,9 @@ from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
 from extensions import db
 from models import Question, TestSession, TestAnswer, WeakTopic
+from api.google_sheet_api import import_sheet_questions, append_test_result
 import random
 from datetime import datetime
-from extensions import db
 from sqlalchemy import text
 
 # DB migration — image_url багана нэмэх
@@ -24,6 +24,9 @@ def generate_test():
     angi    = request.args.get("angi", "12")
     hicheel = request.args.get("hicheel", "")
     too     = int(request.args.get("too", 30))
+
+    if Question.query.count() == 0 or Question.query.filter(Question.angi == angi).count() == 0:
+        import_sheet_questions()
 
     # Blueprint харьцаа: 27% мэдлэг, 53% чадвар, 20% хэрэглээ
     medleg_too  = round(too * 0.27)
@@ -125,6 +128,11 @@ def submit_test():
     session.niit_onoo  = onoo
     session.duusah_tsag = datetime.utcnow()
     db.session.commit()
+
+    try:
+        append_test_result(current_user.ner, session.angi, session.hicheel, onoo, len(answers))
+    except Exception as e:
+        print("Үр дүнгийн Google Sheet рүү бичихэд алдаа:", e)
 
     sul_list = [
         {"hicheel": h, "sedew": s, "aldaa": a}

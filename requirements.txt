@@ -5,6 +5,7 @@ Flask-Dance==7.1.0
 Flask-Bcrypt==1.0.1
 pandas>=2.2.3
 google-generativeai>=0.8.6
+gspread>=5.8.0
 requests==2.31.0
 psycopg2-binary==2.9.9
 blinker==1.7.0
