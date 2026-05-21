@@ -148,6 +148,7 @@ def register():
 # ==================================================
 
     @app.route('/logout', endpoint='auth.logout')
+@app.route('/logout', endpoint='auth.logout')
 @login_required
 def logout():
     logout_user()
@@ -155,13 +156,17 @@ def logout():
     return redirect(url_for('auth.login'))
 
 
-# --- 6. ӨГӨГДЛИЙН БААЗ ҮҮСГЭХ ХЭСЭГ ---
 def init_database():
     try:
         with app.app_context():
-            db.create_all()  # Хүснэгт байхгүй бол шинээр үүсгэнэ
+            db.create_all()
             print("Өгөгдлийн бааз амжилттай шалгагдлаа (Бэлэн байна).")
     except Exception as e:
         print(f"Бааз үүсгэхэд алдаа гарлаа: {e}")
 
 init_database()
+# ==================================
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_DEBUG", "False") == "True")
