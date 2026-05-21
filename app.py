@@ -78,7 +78,7 @@ def login():
         
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
-        password = request.form.get('nuuts_ug', '') # HTML дээрх name="nuuts_ug"
+        password = request.form.get('nuuts_ug', '')  # HTML дээрх name="nuuts_ug"
 
         # Хэрэглэгчийг имэйлээр нь хайх
         user = User.query.filter_by(email=email).first()
@@ -96,14 +96,6 @@ def login():
     return render_template('login.html')
 
 
-# ... дээр нь login функц байж байна ...
-@app.route('/login', methods=['GET', 'POST'], endpoint='auth.login')
-def login():
-    # ... login-ий доторх кодууд ...
-    return render_template('login.html')
-
-
-# === ЯГ ЭНД МИНИЙ ӨГСӨН ЗАССАН КОДЫГ ХУУЛЖ ТАВИНА ===
 @app.route('/register', methods=['GET', 'POST'], endpoint='auth.register')
 def register():
     if current_user.is_authenticated:
@@ -145,17 +137,6 @@ def register():
             flash(f'Бүртгэхэд алдаа гарлаа: {str(e)}', 'danger')
             
     return render_template('register.html')
-# ==================================================
-try:
-            db.session.add(new_user)
-            db.session.commit()
-            flash('Бүртгэл амжилттай боллоо! Одоо нэвтэрч болно.', 'success')
-            return redirect(url_for('auth.login'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Бүртгэхэд алдаа гарлаа: {str(e)}', 'danger')
-            
-    return render_template('register.html')
 
 
 @app.route('/logout', endpoint='auth.logout')
@@ -166,7 +147,7 @@ def logout():
     return redirect(url_for('auth.login'))
 
 
-# Хэрэв хүснэгтүүд байхгүй бол апп асах урсгалд шууд үүсгэнэ (зайны алдаа гарахгүй)
+# Хэрэв хүснэгтүүд байхгүй бол апп асах урсгалд автоматаар үүсгэнэ
 with app.app_context():
     db.create_all()
 
