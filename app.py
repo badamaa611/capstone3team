@@ -1,195 +1,271 @@
 ﻿import os
-from flask import Flask, render_template, redirect, url_for, request, flash
-from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from flask_bcrypt import Bcrypt
+import random
+import requests
+import csv
+import google.genai as genai
+from flask import Flask, render_template, request, jsonify, flash, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 
-# Өгөгдлийн бааз болон Моделиудыг зөв импортлох
-from extensions import db
-from models import User, Question, TestSession, TestAnswer, WeakTopic
-
-# API Route-үүдийг дуудаж оруулж ирэх
-from api.test_routes import test_bp
-from api.ai_routes import ai_bp
-
+# 1. СИСТЕМИЙН ҮНДСЭН ТОХИРГОО Бааз үүсгэх үйл явц
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'super-brain-secret-key-12345')
 
-# --- 1. АЮУЛГҮЙ БАЙДАЛ БОЛОН ОРЧНЫ ТОХИРУУЛГА ---
-app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "super-secret-dev-key-12345")
-
-# Өгөгдлийн баазын холболт (PostgreSQL эсвэл SQLite)
-database_url = os.getenv("DATABASE_URL")
-if database_url and database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///capstone.db'
+# Render дээрх PostgreSQL холболт, эсвэл локал SQLite бааз хамгаалалт
+DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///super_brain.db')
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# --- 2. САНГУУДЫГ ХӨТӨЛБӨРТЭЙ ХОЛБОХ ---
-db.init_app(app)  # extensions.py-д үүсгэсэн db-г апп-тай холбох
-bcrypt = Bcrypt(app)
+db = SQLAlchemy(app)
 login_manager = LoginManager(app)
-login_manager.login_view = 'auth.login'
-login_manager.login_message = "Энэ хуудас руу хандахын тулд эхлээд нэвтэрнэ үү."
-login_manager.login_message_category = "info"
+login_manager.login_view = 'login'
+
+# ⚠️ БАГШ АА: Өөрийн Google Sheet-ийн урт ID-г энд орлуулан тавиарай!
+# Жишээ нь: https://docs.google.com/spreadsheets/d/1xxXXxx_XXxx/edit бол ID нь "1xxXXxx_XXxx" байна.
+GOOGLE_SHEET_ID = os.getenv('GOOGLE_SHEET_ID', 'https://docs.google.com/spreadsheets/d/1HkJZUebgNFtYghS55KUKcCjNVx7A4O2huEvyv1d331o/edit?gid=1505017336#gid=1505017336')
+
+# 2. ӨГӨГДЛИЙН БААЗЫН МОДЕЛУУД (Хүснэгтүүдийн бүтэц)
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ner = db.Column(db.String(150), nullable=False)
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(256), nullable=False)
+
+class Question(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    angi = db.Column(db.String(10), nullable=False)        # 5, 9, 12
+    hicheel = db.Column(db.String(100), nullable=False)    # Математик, Физик, Биологи...
+    sedew = db.Column(db.String(150), nullable=True)       # Сэдвийн нэр
+    asuult_text = db.Column(db.Text, nullable=False)       # Асуулт
+    zow_hariult = db.Column(db.Text, nullable=False)       # Зөв хариулт
+    buruu_hariult1 = db.Column(db.Text, nullable=False)    # Буруу хувилбар 1
+    buruu_hariult2 = db.Column(db.Text, nullable=False)    # Буруу хувилбар 2
+    buruu_hariult3 = db.Column(db.Text, nullable=False)    # Буруу хувилбар 3
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# --- 3. BLUEPRINTS БҮРТГЭХ ---
-app.register_blueprint(test_bp, url_prefix="/api")
-app.register_blueprint(ai_bp, url_prefix="/api")
-
-# --- 4. ВЭБ ХУУДАСНЫ ҮНДСЭН ROUTE-ҮҮД ---
-
-@app.route('/')
-def index():
-    """Нүүр хуудас"""
-    return render_template('index.html')
-
-@app.route('/test')
-@login_required
-def test_page():
-    """Тест бөглөх хуудас"""
-    angi = request.args.get('angi', '12')
-    hicheel = request.args.get('hicheel', '')
-    
-    if not hicheel:
-        flash("Уучлаарай, хичээл сонгогдоогүй байна.", "warning")
-        return redirect(url_for('index'))
-        
-    return render_template('test.html', angi=angi, hicheel=hicheel)
-
-@app.route('/result')
-@login_required
-def result_page():
-    """Шалгалтын хариу харуулах хуудас"""
-    onoo = request.args.get('onoo', 0)
-    niit = request.args.get('niit', 0)
-    return render_template('result.html', onoo=onoo, niit=niit)
-
-
-# --- 5. ХЭРЭГЛЭГЧ БҮРТГҮҮЛЭХ, НЭВТРЭХ СИСТЕМ ---
-
-@app.route('/login', methods=['GET', 'POST'], endpoint='auth.login')
+# 3. ХЭРЭГЛЭГЧИЙН СИСТЕМ (Нэвтрэх, Бүртгүүлэх, Гарах)
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-        
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
-        password = request.form.get('nuuts_ug', '')  # HTML дээрх name="nuuts_ug"
-
-        # Хэрэглэгчийг имэйлээр нь хайх
+        password = request.form.get('password', '')
         user = User.query.filter_by(email=email).first()
-        
-        # models.py дээр нууц үг нь 'nuuts_ug' багананд хадгалагдаж байгаа
-        if user and bcrypt.check_password_hash(user.nuuts_ug, password):
+        if user and check_password_hash(user.password, password):
             login_user(user)
-            flash('Амжилттай нэвтэрлээ!', 'success')
-            
-            next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('index'))
-        else:
-            flash('Имэйл эсвэл нууц үг буруу байна!', 'danger')
-            
+            flash('Системд амжилттай нэвтэрлээ!', 'success')
+            return redirect(url_for('index'))
+        flash('Имэйл эсвэл нууц үг буруу байна!', 'danger')
     return render_template('login.html')
 
-
-@app.route('/register', methods=['GET', 'POST'], endpoint='auth.register')
+@app.route('/register', methods=['GET', 'POST'])
 def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-        
     if request.method == 'POST':
-        ner = request.form.get('ner', '').strip()          
-        email = request.form.get('email', '').strip()      
-        password = request.form.get('nuuts_ug', '')       
-        duwer = request.form.get('duwer', 'suragch')       
-        angi = request.form.get('angi', '').strip()        
+        ner = request.form.get('ner', '').strip()
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
         
-        if not ner or not email or not password:
-            flash('Нэр, И-мэйл, Нууц үг талбарыг заавал бөглөнө үү!', 'danger')
-            return render_template('register.html')
+        if User.query.filter_by(email=email).first():
+            flash('Энэ имэйл хаяг аль хэдийн бүртгэгдсэн байна!', 'danger')
+            return redirect(url_for('register'))
             
-        user_exists = User.query.filter_by(email=email).first()
-        if user_exists:
-            flash('Энэ имэйл хаяг аль хэдийн бүртгэгдсэн байна.', 'danger')
-            return render_template('register.html')
-            
-        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+        new_user = User(ner=ner, email=email, password=hashed_password)
+        db.session.add(new_user)
+        db.session.commit()
         
-        new_user = User(
-            ner=ner, 
-            email=email, 
-            nuuts_ug=hashed_password, 
-            duwer=duwer, 
-            angi=angi
-        )
-        
-        try:
-            db.session.add(new_user)
-            db.session.commit()
-            flash('Бүртгэл амжилттай боллоо! Одоо нэвтэрч болно.', 'success')
-            return redirect(url_for('auth.login'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Бүртгэхэд алдаа гарлаа: {str(e)}', 'danger')
-            
+        login_user(new_user)
+        flash('Бүртгэл амжилттай үүсэж, нэвтэрлээ!', 'success')
+        return redirect(url_for('index'))
     return render_template('register.html')
 
-
-@app.route('/logout', endpoint='auth.logout')
+@app.route('/logout')
 @login_required
 def logout():
     logout_user()
-    flash('Системээс амжилттай гарлаа.', 'info')
-    return redirect(url_for('auth.login'))
+    flash('Системээс гарлаа.', 'info')
+    return redirect(url_for('index'))
 
-# --- app.py-ийн хамгийн доод хэсэг ---
-
-with app.app_context():
-    db.create_all()
-    
-    # 1. Сэдэв багана байхгүй бол нэмэх хамгаалалт
+# 4. ҮНДСЭН ХУУДАС (Ухаалаг хичээлийн цэс шүүлт)
+@app.route('/')
+def index():
+    subjects = []
     try:
-        from sqlalchemy import text
-        db.session.execute(text("ALTER TABLE question ADD COLUMN sedew VARCHAR(100);"))
-        db.session.commit()
+        # Баазад бэлэн байгаа анги, хичээлийн нэрсийг давхардахгүйгээр унших
+        distinct_subs = db.session.query(Question.angi, Question.hicheel).distinct().all()
+        subjects = [{"angi": s[0], "hicheel": s[1]} for s in distinct_subs]
     except Exception:
-        db.session.rollback()
+        subjects = []
+    return render_template('index.html', subjects=subjects)
 
-    # 2. Моделийн нэр харгалзахгүй шууд SQL-ээр туршилтын асуулт нэмэх (Хамгийн аюулгүй)
+# 5. ТЕСТҮҮДИЙН ЛОГИК (Жинхэнэ асуултыг баазаас шүүж, хариултыг холих)
+@app.route('/get-questions', methods=['GET'])
+@login_required
+def get_questions():
+    angi = request.args.get('angi', '').strip()
+    hicheel = request.args.get('hicheel', '').strip()
+    questions = []
+    
     try:
-        from sqlalchemy import text
-        # Бааз хоосон эсэхийг шалгах
-        count_res = db.session.execute(text("SELECT COUNT(*) FROM question;")).scalar()
+        if angi and hicheel:
+            questions = Question.query.filter(
+                (Question.angi == str(angi)) & 
+                (Question.hicheel.ilike(f"%{hicheel}%"))
+            ).limit(10).all()
+        if not questions and angi:
+            questions = Question.query.filter_by(angi=str(angi)).limit(10).all()
+        if not questions:
+            questions = Question.query.limit(10).all()
+    except Exception as e:
+        print(f"Баазаас асуулт уншихад алдаа: {e}")
+
+    # Хэрэв бааз бүрэн хоосон байвал сурагчийг гацаахгүй
+    if not questions:
+        return jsonify({
+            "questions": [{
+                "id": 999,
+                "asuult": f"Уучлаарай, {angi}-р ангийн '{hicheel}' хичээлийн асуулт баазад хараахан ороогүй байна. Багш Google Sheet-ээс импорт хийх шаардлагатай.",
+                "sedew": "Мэдэгдэл",
+                "choices": [
+                    {"text": "Ойлголоо, багшид мэдэгдэе", "is_correct": True},
+                    {"text": "Хаах", "is_correct": False}
+                ]
+            }]
+        })
+
+    output = []
+    for q in questions:
+        choices = [
+            {"text": q.zow_hariult, "is_correct": True},
+            {"text": q.buruu_hariult1, "is_correct": False},
+            {"text": q.buruu_hariult2, "is_correct": False},
+            {"text": q.buruu_hariult3, "is_correct": False}
+        ]
+        random.shuffle(choices) # Сурагч бүрт хариултын дараалал солигдоно
+        output.append({
+            "id": q.id,
+            "asuult": q.asuult_text,
+            "sedew": q.sedew or 'Ерөнхий сэдэв',
+            "choices": choices
+        })
+    return jsonify({"questions": output})
+
+@app.route('/submit-test', methods=['POST'])
+@login_required
+def submit_test():
+    data = request.json or {}
+    answers = data.get('answers', [])
+    zow_too, buruu_too = 0, 0
+    aldsan_sedwuwd = set()
+    
+    for ans in answers:
+        q_id = ans.get('question_id')
+        selected = ans.get('selected_text')
+        if q_id == 999:
+            zow_too += 1
+            continue
+        q = Question.query.get(q_id)
+        if q:
+            if str(q.zow_hariult).strip() == str(selected).strip():
+                zow_too += 1
+            else:
+                buruu_too += 1
+                if q.sedew: aldsan_sedwuwd.add(q.sedew)
+        else:
+            buruu_too += 1
+
+    # Gemini AI - Шалгалтын үр дүнд тулгуурласан зөвлөмж
+    if aldsan_sedwuwd:
+        sedew_str = ", ".join(list(aldsan_sedwuwd))
+        prompt = (
+            f"Чи бол Super Brain системийн ухаалаг AI багш байна. Сурагч тест өгөөд дараах сэдвүүд дээр алдсан байна: {sedew_str}.\n"
+            f"Эдгээр сэдэв тус бүрээр сурагчийн мэдлэгийг бататгах зорилгоор сонгох хувилбартай (MCQ) шинээр 2 асуулт зохиож өгнө үү.\n"
+            f"Асуулт бүрийн доор зөв хариултыг нь заавал тэмдэглэж, тайлбарыг Монгол хэлээр маш тодорхой харуулна уу."
+        )
+        try:
+            client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+            response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
+            ai_output = response.text
+        except Exception as e:
+            ai_output = f"Сурагч дараах сэдвүүд дээр алдлаа: {sedew_str}. (AI зөвлөх залгагдахад алдаа гарлаа: {e})"
+    else:
+        ai_output = "🎉 Төгс гүйцэтгэл! Та бүх асуултандаа 100% зөв хариуллаа. Маш сайн байна!"
+
+    return jsonify({
+        "status": "success",
+        "zow_too": zow_too,
+        "buruu_too": buruu_too,
+        "niit_asuult": len(answers),
+        "ai_recommendation": ai_output
+    })
+
+# 6. УХААЛАГ GOOGLE SHEET ИМПОРТЫН СИСТЕМ (Хуучин асуултыг цэвэрлэж, шинийг хуулна)
+@app.route('/import-now', methods=['GET'])
+def import_from_sheet():
+    csv_url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}/export?format=csv&gid=0"
+    try:
+        response = requests.get(csv_url)
+        if response.status_code != 200:
+            return jsonify({
+                "status": "error",
+                "message": "Google Sheet-ээс өгөгдөл татаж чадсангүй. Та Sheet-ээ 'Anyone with the link can view' болгосон уу?"
+            }), 400
+            
+        csv_data = response.content.decode('utf-8').splitlines()
+        reader = csv.DictReader(csv_data)
         
-        if count_res == 0:
-            # Таны баазын баганууд ямар ч нэртэй байсан ажиллах уян хатан хайлт
-            columns_res = db.session.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='question';")).fetchall()
-            cols = [r[0] for r in columns_res]
+        # Хүснэгтийг цэвэрлэх
+        db.session.query(Question).delete()
+        db.session.commit()
+
+        success_count = 0
+        for row in reader:
+            # Баганын нэрсийг уян хатан унших
+            row = {k.strip().lower() if k else '': v for k, v in row.items()}
+            asuult_txt = row.get('asuult') or row.get('asuult_text')
+            if not asuult_txt:
+                continue
+                
+            angi = row.get('angi', '12').replace('-р анги', '').replace('анги', '').strip()
+            hicheel = row.get('hicheel', 'Ерөнхий хичээл').strip()
+            sedew = row.get('sedew', 'Ерөнхий сэдэв').strip()
+            zow = row.get('zow') or row.get('zow_hariult')
+            b1 = row.get('buruu1') or row.get('buruu_hariult1') or "Хувилбар 1"
+            b2 = row.get('buruu2') or row.get('buruu_hariult2') or "Хувилбар 2"
+            b3 = row.get('buruu3') or row.get('buruu_hariult3') or "Хувилбар 3"
             
-            # Хэрэв тухайн баганы нэрс байвал тохирох SQL асуулга үүсгэнэ
-            q_col = 'asuult_text' if 'asuult_text' in cols else 'asuult'
-            z_col = 'zow_hariult' if 'zow_hariult' in cols else 'zow'
-            b1_col = 'buruu_hariult1' if 'buruu_hariult1' in cols else 'buruu1'
-            b2_col = 'buruu_hariult2' if 'buruu_hariult2' in cols else 'buruu2'
-            b3_col = 'buruu_hariult3' if 'buruu_hariult3' in cols else 'buruu3'
+            new_q = Question(
+                angi=str(angi),
+                hicheel=hicheel,
+                sedew=sedew,
+                asuult_text=asuult_txt,
+                zow_hariult=zow if zow else "Зөв хариулт",
+                buruu_hariult1=b1,
+                buruu_hariult2=b2,
+                buruu_hariult3=b3
+            )
+            db.session.add(new_q)
+            success_count += 1
             
-            # SQL Query ажиллуулах
-            insert_query = text(f"""
-                INSERT INTO question ({q_col}, {z_col}, {b1_col}, {b2_col}, {b3_col}, angi, hicheel, sedew)
-                VALUES ('Монгол улсын нийслэл хот юу вэ?', 'Улаанбаатар', 'Дархан', 'Эрдэнэт', 'Чойбалсан', '12', 'Газарзүй', 'Хүн амын газарзүй');
-            """)
-            db.session.execute(insert_query)
-            db.session.commit()
-            print("=== Демо асуултыг SQL-ээр амжилттай нэмлээ ===")
+        db.session.commit()
+        return jsonify({
+            "status": "success",
+            "message": "SUPER BRAIN баазын асуултууд амжилттай шинэчлэгдлээ!",
+            "imported_questions_count": success_count
+        }), 200
+        
     except Exception as e:
         db.session.rollback()
-        print(f"=== Демо асуулт нэмэхийг алгаслаа: {str(e)} ===")
+        return jsonify({"status": "error", "message": f"Импортын явцад алдаа гарлаа: {str(e)}"}), 500
 
+# Систем анх асах үед хүснэгтүүдийг автоматаар үүсгэх ухаалаг алхам
+with app.app_context():
+    db.create_all()
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_DEBUG", "False") == "True")
+    app.run(debug=True)
