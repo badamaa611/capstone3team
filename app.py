@@ -1,7 +1,9 @@
 ﻿import os
+from urllib.parse import urlparse, urlencode, urlunparse, parse_qsl
 from flask import Flask, render_template, redirect, url_for
 from flask_dance.contrib.google import make_google_blueprint, google
 from flask_login import login_user, current_user
+from sqlalchemy.exc import OperationalError as SAOperationalError
 from extensions import db, bcrypt, login_manager
 from models import User, TestSession, Question
 from google_sheets_api import import_sheet_questions
@@ -18,8 +20,19 @@ def create_app():
     if raw_db_url.startswith("postgres://"):
         raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
 
+    if raw_db_url.startswith("postgresql://") and "sslmode=" not in raw_db_url:
+        parsed = urlparse(raw_db_url)
+        query = dict(parse_qsl(parsed.query))
+        query["sslmode"] = "require"
+        raw_db_url = urlunparse(parsed._replace(query=urlencode(query)))
+
     app.config["SQLALCHEMY_DATABASE_URI"] = raw_db_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_pre_ping": True,
+        "pool_size": 5,
+        "max_overflow": 10,
+    }
 
     db.init_app(app)
     bcrypt.init_app(app)
@@ -68,11 +81,21 @@ def create_app():
 
     @app.route("/")
     def index():
-        if Question.query.count() == 0:
-            try:
-                import_sheet_questions()
-            except Exception:
-                pass
+        subjects = []
+        try:
+            if Question.query.count() == 0:
+                try:
+                    import_sheet_questions()
+                except Exception:
+                    pass
+
+            subjects = [
+                {"angi": row[0], "hicheel": row[1]}
+                for row in Question.query.with_entities(Question.angi, Question.hicheel)
+                    .distinct().order_by(Question.angi, Question.hicheel).all()
+            ]
+        except SAOperationalError:
+            subjects = []
 
         progress_stats = []
         if current_user.is_authenticated:
@@ -93,11 +116,6 @@ def create_app():
                 })
             progress_stats.sort(key=lambda x: x["avg"], reverse=True)
 
-        subjects = [
-            {"angi": row[0], "hicheel": row[1]}
-            for row in Question.query.with_entities(Question.angi, Question.hicheel)
-                .distinct().order_by(Question.angi, Question.hicheel).all()
-        ]
         return render_template("index.html", progress_stats=progress_stats, subjects=subjects)
 
     @app.route("/test")
