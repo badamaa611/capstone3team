@@ -1,63 +1,56 @@
 ﻿import os
 from flask import Flask, render_template, redirect, url_for, request, flash
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_bcrypt import Bcrypt
 
-# Бидний зассан API Route-үүдийг дуудаж оруулж ирэх
+# Өгөгдлийн бааз болон Моделиудыг зөв импортлох
+from extensions import db
+from models import User, Question, TestSession, TestAnswer, WeakTopic
+
+# API Route-үүдийг дуудаж оруулж ирэх
 from api.test_routes import test_bp
 from api.ai_routes import ai_bp
 
 app = Flask(__name__)
 
 # --- 1. АЮУЛГҮЙ БАЙДАЛ БОЛОН ОРЧНЫ ТОХИРУУЛГА ---
-# Render дээр эсвэл локал дээр ажиллах нууц түлхүүр
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "super-secret-dev-key-12345")
 
-# Өгөгдлийн баазын холболт (PostgreSQL эсвэл хөгжүүлэлтийн SQLite)
+# Өгөгдлийн баазын холболт (PostgreSQL эсвэл SQLite)
 database_url = os.getenv("DATABASE_URL")
 if database_url and database_url.startswith("postgres://"):
-    # SQLAlchemy-ийн шинэ хувилбар 'postgresql://' форматыг шаарддаг тул засна
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///capstone.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # --- 2. САНГУУДЫГ ХӨТӨЛБӨРТЭЙ ХОЛБОХ ---
-db = SQLAlchemy(app)
+db.init_app(app)  # extensions.py-д үүсгэсэн db-г апп-тай холбох
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
-login_manager.login_view = 'auth.login'  # HTML дээр 'auth.login' гэж дуудаж байгаа тул ижил болгов
+login_manager.login_view = 'auth.login'
 login_manager.login_message = "Энэ хуудас руу хандахын тулд эхлээд нэвтэрнэ үү."
 login_manager.login_message_category = "info"
-
-# --- 3. ХЭРЭГЛЭГЧИЙН МОДЕЛ (DATABASE MODEL) ---
-class User(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), unique=True, nullable=False)
-    email = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(256), nullable=False)
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# --- 4. BLUEPRINTS БҮРТГЭХ ---
-# Фронтоос ирэх /api/questions болон /api/generate-adaptive-question хаягууд энд бүртгэгдэнэ
+# --- 3. BLUEPRINTS БҮРТГЭХ ---
 app.register_blueprint(test_bp, url_prefix="/api")
 app.register_blueprint(ai_bp, url_prefix="/api")
 
-# --- 5. ВЭБ ХУУДАСНЫ ҮНДСЭН ROUTE-ҮҮД (HTML PAGES) ---
+# --- 4. ВЭБ ХУУДАСНЫ ҮНДСЭН ROUTE-ҮҮД ---
 
 @app.route('/')
 def index():
-    """Нүүр хуудас: Хичээл болон анги сонгох хэсэг"""
+    """Нүүр хуудас"""
     return render_template('index.html')
 
 @app.route('/test')
 @login_required
 def test_page():
-    """Тест бөглөх хуудас (test.html-ийг ачаална)"""
+    """Тест бөглөх хуудас"""
     angi = request.args.get('angi', '12')
     hicheel = request.args.get('hicheel', '')
     
@@ -75,8 +68,8 @@ def result_page():
     niit = request.args.get('niit', 0)
     return render_template('result.html', onoo=onoo, niit=niit)
 
-# --- 6. ХЭРЭГЛЭГЧ БҮРТГҮҮЛЭХ, НЭВТРЭХ СИСТЕМ ---
-# HTML файлууд доторх {{ url_for('auth.login') }} кодыг алдаа заалгахгүй ажиллуулахын тулд endpoint нэмэв
+
+# --- 5. ХЭРЭГЛЭГЧ БҮРТГҮҮЛЭХ, НЭВТРЭХ СИСТЕМ ---
 
 @app.route('/login', methods=['GET', 'POST'], endpoint='auth.login')
 def login():
@@ -85,16 +78,23 @@ def login():
         
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
-        password = request.form.get('password', '')
-        
+        password = request.form.get('nuuts_ug', '') # HTML дээрх name="nuuts_ug"
+
+        # Хэрэглэгчийг имэйлээр нь хайх
         user = User.query.filter_by(email=email).first()
-        if user and bcrypt.check_password_hash(user.password, password):
+        
+        # models.py дээр нууц үг нь 'nuuts_ug' багананд хадгалагдаж байгаа
+        if user and bcrypt.check_password_hash(user.nuuts_ug, password):
             login_user(user)
-            return redirect(url_for('index'))
+            flash('Амжилттай нэвтэрлээ!', 'success')
+            
+            next_page = request.args.get('next')
+            return redirect(next_page) if next_page else redirect(url_for('index'))
         else:
             flash('Имэйл эсвэл нууц үг буруу байна!', 'danger')
             
     return render_template('login.html')
+
 
 @app.route('/register', methods=['GET', 'POST'], endpoint='auth.register')
 def register():
@@ -102,18 +102,34 @@ def register():
         return redirect(url_for('index'))
         
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
+        # HTML формын монгол name="..." утгуудтай тааруулав
+        ner = request.form.get('ner', '').strip()
         email = request.form.get('email', '').strip()
-        password = request.form.get('password', '')
+        password = request.form.get('nuuts_ug', '')
+        duwer = request.form.get('duwer', 'suragch')
+        angi = request.form.get('angi', '').strip()
         
-        # Хэрэглэгч бүртгэлтэй байгаа эсэхийг шалгах
-        user_exists = User.query.filter((User.email == email) | (User.username == username)).first()
-        if user_exists:
-            flash('Энэ имэйл эсвэл хэрэглэгчийн нэр аль хэдийн бүртгэгдсэн байна.', 'danger')
+        if not ner or not email or not password:
+            flash('Нэр, И-мэйл, Нууц үг талбарыг заавал бөглөнө үү!', 'danger')
             return render_template('register.html')
             
+        # Имэйл давхардаж байгаа эсэхийг шалгах
+        user_exists = User.query.filter_by(email=email).first()
+        if user_exists:
+            flash('Энэ имэйл хаяг аль хэдийн бүртгэгдсэн байна.', 'danger')
+            return render_template('register.html')
+            
+        # Нууц үгийг хаш хийж текст төрөл рүү хөрвүүлнэ
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        new_user = User(username=username, email=email, password=hashed_password)
+        
+        # models.py дээрх User моделийн бүтэцээр үүсгэнэ
+        new_user = User(
+            ner=ner, 
+            email=email, 
+            nuuts_ug=hashed_password, 
+            duwer=duwer, 
+            angi=angi
+        )
         
         try:
             db.session.add(new_user)
@@ -126,84 +142,22 @@ def register():
             
     return render_template('register.html')
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        # Формын талбаруудаас утгыг унших (HTML-ийн name="..."-тэй таарах ёстой)
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        role = request.form.get('role')    # Шинэ талбар
-        grade = request.form.get('grade')  # Шинэ талбар
 
-        # Аль нэг чухал талбар хоосон ирсэн эсэхийг шалгах
-        if not username or not email or not password:
-            flash('Нэр, И-мэйл, Нууц үг талбарыг заавал бөглөнө үү!', 'danger')
-            return render_template('register.html')
+@app.route('/logout', endpoint='auth.logout')
+@login_required
+def logout():
+    logout_user()
+    flash('Системээс амжилттай гарлаа.', 'info')
+    return redirect(url_for('auth.login'))
 
-        # И-мэйл давхардаж байгаа эсэхийг шалгах
-        user_exists = User.query.filter_by(email=email).first()
-        if user_exists:
-            flash('Энэ и-мэйл хаяг аль хэдийн бүртгэгдсэн байна.', 'danger')
-            return render_template('register.html')
 
-        # Нууц үгийг хаш код руу хөрвүүлэх
-        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        
-        # Шинэ хэрэглэгчийг үүсгэх (Хэрэв таны User моделд role, grade байгаа бол)
-        # Хэрэв User моделд role, grade байхгүй бол доорх мөрийг зөвхөн username, email, password-оор үлдээгээрэй
-        new_user = User(
-            username=username, 
-            email=email, 
-            password=hashed_password,
-            role=role if role else 'student',  # Хэрэв хоосон бол сурагчаар авна
-            grade=grade
-        )
-        
-        try:
-            db.session.add(new_user)
-            db.session.commit()
-            flash('Амжилттай бүртгүүллээ! Одоо нэвтэрнэ үү.', 'success')
-            return redirect(url_for('login'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Бааз руу хадгалахад алдаа гарлаа: {str(e)}', 'danger')
-            return render_template('register.html')
-
-    return render_template('register.html')
-# --- 7. СЕРВЕРИЙГ АСААХ БОЛОН БААЗ ҮҮСГЭХ ---
-# Хүснэгтүүдийг апп асахаас өмнө аюулгүй бэлдэх функц
+# --- 6. ӨГӨГДЛИЙН БААЗ ҮҮСГЭХ ХЭСЭГ ---
+# Апп асах бүрд өгөгдлийг устгахгүйн тулд drop_all()-ийг хаслаа!
 def init_database():
     try:
         with app.app_context():
-            db.create_all()
-            print("Өгөгдлийн баазын хүснэгтүүд амжилттай үүслээ эсвэл бэлэн байна.")
-    except Exception as e:
-        print(f"Бааз үүсгэхэд алдаа гарлаа (гэхдээ апп-ыг үргэлжлүүлэн асаана): {e}")
-
-# Render эсвэл локал дээр ажиллахаас үл хамааран баазыг шалгана
-init_database()
-
-# --- 7. СЕРВЕРИЙГ АСААХ БОЛОН БААЗ ҮҮСГЭХ ---
-def init_database():
-    try:
-        with app.app_context():
-            # Анхаар: Хуучин буруу бүтэцтэй хүснэгтийг устгаж, шинэчлэх тушаал
-            db.drop_all() 
-            db.create_all()
-            print("Өгөгдлийн баазыг амжилттай цэвэрлэж, шинээр үүсгэлээ!")
-    except Exception as e:
-        print(f"Бааз үүсгэхэд алдаа гарлаа: {e}")
-
-init_database()
-# --- 7. СЕРВЕРИЙГ АСААХ БОЛОН БААЗ ҮҮСГЭХ ---
-def init_database():
-    try:
-        with app.app_context():
-            # Анхаар: Хуучин буруу бүтэцтэй хүснэгтийг устгаж, шинэчлэх тушаал
-            db.drop_all() 
-            db.create_all()
-            print("Өгөгдлийн баазыг амжилттай цэвэрлэж, шинээр үүсгэлээ!")
+            db.create_all()  # Хүснэгт байхгүй бол шинээр үүсгэнэ, байвал хэвээр үлдээж өгөгдлийг хамгаална
+            print("Өгөгдлийн бааз амжилттай шалгагдлаа (Бэлэн байна).")
     except Exception as e:
         print(f"Бааз үүсгэхэд алдаа гарлаа: {e}")
 
