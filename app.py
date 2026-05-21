@@ -146,7 +146,19 @@ def init_database():
 # Render эсвэл локал дээр ажиллахаас үл хамааран баазыг шалгана
 init_database()
 
+# --- 7. СЕРВЕРИЙГ АСААХ БОЛОН БААЗ ҮҮСГЭХ ---
+def init_database():
+    try:
+        with app.app_context():
+            # Анхаар: Хуучин буруу бүтэцтэй хүснэгтийг устгаж, шинэчлэх тушаал
+            db.drop_all() 
+            db.create_all()
+            print("Өгөгдлийн баазыг амжилттай цэвэрлэж, шинээр үүсгэлээ!")
+    except Exception as e:
+        print(f"Бааз үүсгэхэд алдаа гарлаа: {e}")
+
+init_database()
+
 if __name__ == '__main__':
-    # Порт тохируулга (Render-ийн шаардлагаар 0.0.0.0 порт дээр асна)
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_DEBUG", "False") == "True")
