@@ -58,10 +58,10 @@ def import_sheet_questions():
     rows = get_sheet_data()
     added = 0
     for row in rows:
-        task = normalize(row.get("task"))
+        task = normalize(row.get("Асуулт") or row.get("task"))
         image_url = normalize(row.get("link"))
         correct_answer = normalize(row.get("зөв хариулт"))
-        angi = normalize(row.get("Аль анги вэ?") or row.get("Аль анги", "12"))
+        angi = normalize(row.get("Анги") or row.get("Аль анги вэ?") or row.get("Аль анги", "12"))
         hicheel = normalize(row.get("Хичээл"))
         sedew = normalize(row.get("Сэдэв") or hicheel)
         buruuh1 = normalize(row.get("Буруу хариулт 1"))
