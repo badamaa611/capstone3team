@@ -30,8 +30,8 @@ def generate_test():
     hicheel = request.args.get("hicheel", "")
     too     = int(request.args.get("too", 30))
 
-    if Question.query.count() == 0 or Question.query.filter(Question.angi == angi).count() == 0:
-        import_sheet_questions()
+    # NOTE: Auto-import removed — causes timeouts on Render
+    # Use /init-db endpoint to import manually instead
 
     # Blueprint харьцаа: 27% мэдлэг, 53% чадвар, 20% хэрэглээ
     medleg_too  = round(too * 0.27)
