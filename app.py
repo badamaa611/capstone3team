@@ -166,15 +166,9 @@ def logout():
     return redirect(url_for('auth.login'))
 
 
-def init_database():
-    try:
-        with app.app_context():
-            db.create_all()
-            print("Өгөгдлийн бааз амжилттай шалгагдлаа (Бэлэн байна).")
-    except Exception as e:
-        print(f"Бааз үүсгэхэд алдаа гарлаа: {e}")
-
-init_database()
+# Хэрэв хүснэгтүүд байхгүй бол апп асах урсгалд шууд үүсгэнэ (зайны алдаа гарахгүй)
+with app.app_context():
+    db.create_all()
 
 
 if __name__ == '__main__':
