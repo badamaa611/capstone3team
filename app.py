@@ -204,7 +204,7 @@ def submit_test():
         "ai_recommendation": ai_output
     })
 
-# 6. УХААЛАГ GOOGLE SHEET ИМПОРТЫН СИСТЕМ (Хуучин асуултыг цэвэрлэж, шинийг хуулна)
+# 6. УХААЛАГ GOOGLE SHEET ИМПОРТЫН СИСТЕМ (Алдааг шууд мэдээлдэг хувилбар)
 @app.route('/import-now', methods=['GET'])
 def import_from_sheet():
     csv_url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}/export?format=csv&gid=0"
@@ -213,41 +213,58 @@ def import_from_sheet():
         if response.status_code != 200:
             return jsonify({
                 "status": "error",
-                "message": "Google Sheet-ээс өгөгдөл татаж чадсангүй. Та Sheet-ээ 'Anyone with the link can view' болгосон уу?"
+                "message": f"Google Sheet-ээс өгөгдөл татаж чадсангүй. Сэргээх код: {response.status_code}"
             }), 400
             
         csv_data = response.content.decode('utf-8').splitlines()
         reader = csv.DictReader(csv_data)
         
-        # Хүснэгтийг цэвэрлэх
-        db.session.query(Question).delete()
-        db.session.commit()
+        # Хүснэгтийн толгойн нэрсийг шалгах зорилгоор хэвлэж харах
+        fieldnames = [f.strip().lower() for f in reader.fieldnames] if reader.fieldnames else []
+        print(f"Илэрсэн баганын нэрс: {fieldnames}")
+
+        # Хуучин асуултуудыг баазаас устгах
+        try:
+            db.session.query(Question).delete()
+            db.session.commit()
+        except Exception as db_err:
+            db.session.rollback()
+            return jsonify({"status": "error", "message": f"Хуучин баазыг цэвэрлэхэд алдаа гарлаа: {str(db_err)}"}), 500
 
         success_count = 0
-        for row in reader:
-            # Баганын нэрсийг уян хатан унших
-            row = {k.strip().lower() if k else '': v for k, v in row.items()}
-            asuult_txt = row.get('asuult') or row.get('asuult_text')
+        skipped_count = 0
+        
+        for index, row in enumerate(reader, start=2): # Маягтын 2-р мөрнөөс эхэлнэ
+            # Түлхүүр үгсийг зайг нь авч, жижиг үсгээр унших хамгаалалт
+            clean_row = {k.strip().lower() if k else '': v for k, v in row.items()}
+            
+            # Асуултын текст хайх уян хатан логик
+            asuult_txt = clean_row.get('asuult_text') or clean_row.get('asuult') or clean_row.get('асуулт')
             if not asuult_txt:
+                skipped_count += 1
                 continue
                 
-            angi = row.get('angi', '12').replace('-р анги', '').replace('анги', '').strip()
-            hicheel = row.get('hicheel', 'Ерөнхий хичээл').strip()
-            sedew = row.get('sedew', 'Ерөнхий сэдэв').strip()
-            zow = row.get('zow') or row.get('zow_hariult')
-            b1 = row.get('buruu1') or row.get('buruu_hariult1') or "Хувилбар 1"
-            b2 = row.get('buruu2') or row.get('buruu_hariult2') or "Хувилбар 2"
-            b3 = row.get('buruu3') or row.get('buruu_hariult3') or "Хувилбар 3"
+            # Бусад багануудыг унших (Sheet дээрх нэр Монгол эсвэл Англи байсан ч уншина)
+            angi = clean_row.get('angi') or clean_row.get('анги') or '12'
+            angi = str(angi).replace('-р анги', '').replace('анги', '').strip()
+            
+            hicheel = clean_row.get('hicheel') or clean_row.get('хичээл') or 'Ерөнхий хичээл'
+            sedew = clean_row.get('sedew') or clean_row.get('сэдэв') or 'Ерөнхий сэдэв'
+            
+            zow = clean_row.get('zow_hariult') or clean_row.get('zow') or clean_row.get('зөв')
+            b1 = clean_row.get('buruu_hariult1') or clean_row.get('buruu1') or clean_row.get('буруу1') or "Хувилбар 1"
+            b2 = clean_row.get('buruu_hariult2') or clean_row.get('buruu2') or clean_row.get('буруу2') or "Хувилбар 2"
+            b3 = clean_row.get('buruu_hariult3') or clean_row.get('buruu3') or clean_row.get('буруу3') or "Хувилбар 3"
             
             new_q = Question(
                 angi=str(angi),
-                hicheel=hicheel,
-                sedew=sedew,
-                asuult_text=asuult_txt,
-                zow_hariult=zow if zow else "Зөв хариулт",
-                buruu_hariult1=b1,
-                buruu_hariult2=b2,
-                buruu_hariult3=b3
+                hicheel=hicheel.strip(),
+                sedew=sedew.strip(),
+                asuult_text=asuult_txt.strip(),
+                zow_hariult=zow.strip() if zow else "Зөв хариулт олдсонгүй",
+                buruu_hariult1=b1.strip(),
+                buruu_hariult2=b2.strip(),
+                buruu_hariult3=b3.strip()
             )
             db.session.add(new_q)
             success_count += 1
@@ -256,12 +273,18 @@ def import_from_sheet():
         return jsonify({
             "status": "success",
             "message": "SUPER BRAIN баазын асуултууд амжилттай шинэчлэгдлээ!",
-            "imported_questions_count": success_count
+            "imported_questions_count": success_count,
+            "skipped_rows": skipped_count
         }), 200
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({"status": "error", "message": f"Импортын явцад алдаа гарлаа: {str(e)}"}), 500
+        # Дэлгэц дээр яг ямар алдаа гарч 500 зааж байгааг ил тод харуулна
+        return jsonify({
+            "status": "error", 
+            "message": "Импортын явцад дотоод алдаа (500) гарлаа.", 
+            "error_details": str(e)
+        }), 500
 
 # Систем анх асах үед хүснэгтүүдийг автоматаар үүсгэх ухаалаг алхам
 with app.app_context():
