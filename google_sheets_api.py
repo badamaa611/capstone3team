@@ -55,7 +55,15 @@ def normalize(value):
 
 
 def import_sheet_questions():
-    rows = get_sheet_data()
+    global _sheet_cache, _cache_timestamp
+    _sheet_cache = None
+    _cache_timestamp = None
+    rows = get_sheet_data(use_cache=False)
+    
+    if rows:
+        print(f"DEBUG: {len(rows)} мөр уншлаа")
+        if rows:
+            print(f"DEBUG: Эхний мөрийн түлхүүрүүд: {list(rows[0].keys())}")
     added = 0
     for row in rows:
         task = normalize(row.get("Асуулт") or row.get("task"))
