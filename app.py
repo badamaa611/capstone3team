@@ -84,27 +84,27 @@ def create_app():
         """Health check endpoint - no DB required"""
         return {"status": "ok", "version": "1.0"}, 200
 
+    @app.route("/init-db", methods=["POST"])
+    def init_db():
+        """Import questions from Google Sheet (admin only)"""
+        try:
+            db.create_all()
+            app.logger.info("Tables created")
+            
+            added = import_sheet_questions()
+            app.logger.info(f"Imported {added} questions")
+            return {"status": "ok", "imported": added}, 200
+        except Exception as e:
+            app.logger.error(f"DB init failed: {e}", exc_info=True)
+            return {"status": "error", "message": str(e)}, 500
+
     @app.route("/")
     def index():
         subjects = []
         db_available = False
         
-        # Try to create tables on first request if they don't exist
         try:
-            db.create_all()
-        except Exception as e:
-            app.logger.warning(f"Failed to create tables: {e}")
-        
-        try:
-            # Check if questions exist in DB
-            count = Question.query.count()
-            if count == 0:
-                try:
-                    import_sheet_questions()
-                except Exception as e:
-                    app.logger.warning(f"Failed to import sheet: {e}")
-
-            # Get distinct subjects
+            # Get distinct subjects from existing questions
             subjects = [
                 {"angi": row[0], "hicheel": row[1]}
                 for row in Question.query.with_entities(Question.angi, Question.hicheel)
@@ -112,7 +112,7 @@ def create_app():
             ]
             db_available = True
         except Exception as e:
-            app.logger.error(f"Error in index DB query: {e}", exc_info=True)
+            app.logger.error(f"Error querying subjects: {e}", exc_info=True)
             subjects = []
 
         progress_stats = []
@@ -142,7 +142,7 @@ def create_app():
             return render_template("index.html", progress_stats=progress_stats, subjects=subjects)
         except Exception as e:
             app.logger.error(f"Error rendering template: {e}", exc_info=True)
-            return "<html><head><title>Error</title></head><body>Template rendering failed</body></html>", 500
+            return "<html><body>Error loading page</body></html>", 500
 
     @app.route("/test")
     def test_page():
