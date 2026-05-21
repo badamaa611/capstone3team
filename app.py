@@ -1,174 +1,143 @@
 ﻿import os
-from urllib.parse import urlparse, urlencode, urlunparse, parse_qsl
-from flask import Flask, render_template, redirect, url_for
-from flask_dance.contrib.google import make_google_blueprint, google
-from flask_login import login_user, current_user
-from sqlalchemy.exc import OperationalError as SAOperationalError
-from extensions import db, bcrypt, login_manager
-from models import User, TestSession, Question
-from google_sheets_api import import_sheet_questions
-from api.auth_routes import auth_bp
+from flask import Flask, render_template, redirect, url_for, request, flash
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_bcrypt import Bcrypt
+
+# Манай зассан API Route-үүдийг дуудаж оруулж ирэх
 from api.test_routes import test_bp
 from api.ai_routes import ai_bp
 
+app = Flask(__name__)
 
-def create_app():
-    app = Flask(__name__, template_folder="templates", static_folder="static")
-    app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-12345")
+# --- 1. АЮУЛГҮЙ БАЙДАЛ БОЛОН ОРЧНЫ ТОХИРУУЛГА ---
+# Render дээр эсвэл локал дээр ажиллах нууц түлхүүр
+app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "super-secret-dev-key-12345")
 
-    raw_db_url = os.environ.get("DATABASE_URL", "sqlite:///users.db")
-    if raw_db_url.startswith("postgres://"):
-        raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
+# Өгөгдлийн баазын холболт (PostgreSQL эсвэл хөгжүүлэлтийн SQLite)
+database_url = os.getenv("DATABASE_URL")
+if database_url and database_url.startswith("postgres://"):
+    # SQLAlchemy-ийн шинэ хувилбар 'postgresql://' форматыг шаарддаг тул засна
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
 
-    if raw_db_url.startswith("postgresql://") and "sslmode=" not in raw_db_url:
-        parsed = urlparse(raw_db_url)
-        query = dict(parse_qsl(parsed.query))
-        query["sslmode"] = "require"
-        raw_db_url = urlunparse(parsed._replace(query=urlencode(query)))
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///capstone.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    app.config["SQLALCHEMY_DATABASE_URI"] = raw_db_url
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        "pool_pre_ping": True,
-        "pool_size": 5,
-        "max_overflow": 10,
-    }
+# --- 2. САНГУУДЫГ ХӨТӨЛБӨРТЭЙ ХОЛБОХ ---
+db = SQLAlchemy(app)
+bcrypt = Bcrypt(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'  # Хэрэв нэвтрээгүй бол энэ хаяг руу шилжүүлнэ
+login_manager.login_message = "Энэ хуудас руу хандахын тулд эхлээд нэвтэрнэ үү."
+login_manager.login_message_category = "info"
 
-    db.init_app(app)
-    bcrypt.init_app(app)
-    login_manager.init_app(app)
-    login_manager.login_view = "auth.login"
+# --- 3. ХЭРЭГЛЭГЧИЙН МОДЕЛ (DATABASE MODEL) ---
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(256), nullable=False)
 
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(test_bp, url_prefix="/api")
-    app.register_blueprint(ai_bp, url_prefix="/api")
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
-    @login_manager.user_loader
-    def load_user(user_id):
-        return User.query.get(int(user_id))
+# --- 4. BLUEPRINTS БҮРТГЭХ (ХАМГИЙН ЧУХАЛ ХЭСЭГ) ---
+# Бидний зассан /api/questions болон /api/generate-adaptive-question хаягууд энд бүртгэгдэнэ
+app.register_blueprint(test_bp, url_prefix="/api")
+app.register_blueprint(ai_bp, url_prefix="/api")
 
-    google_bp = make_google_blueprint(
-        client_id=os.environ.get("GOOGLE_CLIENT_ID", ""),
-        client_secret=os.environ.get("GOOGLE_CLIENT_SECRET", ""),
-        scope=["profile", "email"],
-        redirect_to="google_callback"
-    )
-    app.register_blueprint(google_bp, url_prefix="/login")
+# --- 5. ВЭБ ХУУДАСНЫ ҮНДСЭН ROUTE-ҮҮД (HTML PAGES) ---
 
-    @app.route("/google-callback")
-    def google_callback():
-        if not google.authorized:
-            return redirect(url_for("google.login"))
-        resp = google.get("/oauth2/v2/userinfo")
-        if not resp.ok:
-            return "Google-ээс мэдээлэл авахад алдаа гарлаа.", 500
-        info = resp.json()
-        email = info.get("email")
-        ner = info.get("name", "Хэрэглэгч")
+@app.route('/')
+def index():
+    """Нүүр хуудас: Хичээл болон анги сонгох хэсэг"""
+    return render_template('index.html')
+
+@app.route('/test')
+@login_required
+def test_page():
+    """Тест бөглөх хуудас (test.html-ийг ачаална)"""
+    angi = request.args.get('angi', '12')
+    hicheel = request.args.get('hicheel', '')
+    
+    if not hicheel:
+        flash("Уучлаарай, хичээл сонгогдоогүй байна.", "warning")
+        return redirect(url_for('index'))
+        
+    return render_template('test.html', angi=angi, hicheel=hicheel)
+
+@app.route('/result')
+@login_required
+def result_page():
+    """Шалгалтын хариу харуулах хуудас"""
+    onoo = request.args.get('onoo', 0)
+    niit = request.args.get('niit', 0)
+    return render_template('result.html', onoo=onoo, niit=niit)
+
+# --- 6. ХЭРЭГЛЭГЧ БҮРТГҮҮЛЭХ, НЭВТРЭХ СИСТЕМ ---
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+        
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+        
         user = User.query.filter_by(email=email).first()
-        if not user:
-            user = User(ner=ner, email=email, nuuts_ug="google-auth", duwer="suragch")
-            db.session.add(user)
-            db.session.commit()
-        login_user(user)
-        return redirect(url_for("index"))
-
-    @app.route("/logout")
-    def logout():
-        from flask_login import logout_user
-        logout_user()
-        return redirect(url_for("index"))
-
-    @app.route("/health")
-    def health():
-        """Health check endpoint - no DB required"""
-        return {"status": "ok", "version": "1.0"}, 200
-
-    @app.route("/init-db", methods=["POST"])
-    def init_db():
-        """Import questions from Google Sheet (admin only)"""
-        try:
-            db.create_all()
-            app.logger.info("Tables created")
+        if user and bcrypt.check_password_hash(user.password, password):
+            login_user(user)
+            return redirect(url_for('index'))
+        else:
+            flash('Имэйл эсвэл нууц үг буруу байна!', 'danger')
             
-            added = import_sheet_questions()
-            app.logger.info(f"Imported {added} questions")
-            return {"status": "ok", "imported": added}, 200
-        except Exception as e:
-            app.logger.error(f"DB init failed: {e}", exc_info=True)
-            return {"status": "error", "message": str(e)}, 500
+    return render_template('login.html')
 
-    @app.route("/")
-    def index():
-        subjects = []
-        db_available = False
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+        
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+        
+        # Хэрэглэгч бүртгэлтэй байгаа эсэхийг шалгах
+        user_exists = User.query.filter((User.email == email) | (User.username == username)).first()
+        if user_exists:
+            flash('Энэ имэйл эсвэл хэрэглэгчийн нэр аль хэдийн бүртгэгдсэн байна.', 'danger')
+            return render_template('register.html')
+            
+        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+        new_user = User(username=username, email=email, password=hashed_password)
         
         try:
-            # Get distinct subjects from existing questions
-            subjects = [
-                {"angi": row[0], "hicheel": row[1]}
-                for row in Question.query.with_entities(Question.angi, Question.hicheel)
-                    .distinct().order_by(Question.angi, Question.hicheel).all()
-            ]
-            db_available = True
+            db.session.add(new_user)
+            db.session.commit()
+            flash('Бүртгэл амжилттай боллоо! Одоо нэвтэрч болно.', 'success')
+            return redirect(url_for('login'))
         except Exception as e:
-            app.logger.error(f"Error querying subjects: {e}", exc_info=True)
-            subjects = []
+            db.session.rollback()
+            flash(f'Бүртгэхэд алдаа гарлаа: {str(e)}', 'danger')
+            
+    return render_template('register.html')
 
-        progress_stats = []
-        if current_user.is_authenticated and db_available:
-            try:
-                sessions = TestSession.query.filter_by(suragch_id=current_user.id).all()
-                stats = {}
-                for s in sessions:
-                    if not s.too:
-                        continue
-                    pct = round((s.niit_onoo or 0) / s.too * 100)
-                    subject = s.hicheel or "Тодорхойгүй"
-                    stats.setdefault(subject, []).append(pct)
-                for subject, values in stats.items():
-                    avg_pct = round(sum(values) / len(values))
-                    progress_stats.append({
-                        "hicheel": subject,
-                        "avg": avg_pct,
-                        "tests": len(values)
-                    })
-                progress_stats.sort(key=lambda x: x["avg"], reverse=True)
-            except Exception as e:
-                app.logger.error(f"Error getting progress: {e}", exc_info=True)
-                progress_stats = []
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('Системээс амжилттай гарлаа.', 'success')
+    return redirect(url_for('login'))
 
-        try:
-            return render_template("index.html", progress_stats=progress_stats, subjects=subjects)
-        except Exception as e:
-            app.logger.error(f"Error rendering template: {e}", exc_info=True)
-            return "<html><body>Error loading page</body></html>", 500
-
-    @app.route("/test")
-    def test_page():
-        from flask import request
-        angi = request.args.get("angi", "12")
-        hicheel = request.args.get("hicheel", "Биологи")
-        return render_template("test.html", angi=angi, hicheel=hicheel)
-
-    @app.route("/result")
-    def result_page():
-        from flask import request
-        onoo = request.args.get("onoo", "0")
-        return render_template("result.html", onoo=onoo)
-
-    return app
-
-
-app = create_app()
-
-# Don't call db.create_all() at startup on Render - it causes timeouts
-# Tables will be created on first request if needed
-# with app.app_context():
-#     try:
-#         db.create_all()
-#     except Exception as exc:
-#         print("Warning: failed to create tables at startup:", exc)
-
+# --- 7. СЕРВЕРИЙГ АСААХ БОЛОН БААЗ ҮҮСГЭХ ---
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Програм асах үед баазын хүснэгтүүд байхгүй бол автоматаар үүсгэнэ
+    with app.app_context():
+        db.create_all()
+        
+    # Порт тохируулга (Render-ийн шаардлагаар 0.0.0.0 порт дээр асна)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_DEBUG", "False") == "True")
