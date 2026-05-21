@@ -147,19 +147,41 @@ def logout():
     return redirect(url_for('auth.login'))
 
 
-# --- app.py-ийн хамгийн доод хэсэг ---
+# --- app.py-ийн доод хэсгийг ингэж шинэчилнэ ---
 
 with app.app_context():
     db.create_all()
-    # Хэрэв баазад sedew гэдэг багана байхгүй бол автоматаар нэмэх логик
+    
+    # Баганы хамгаалалт
     try:
         from sqlalchemy import text
         db.session.execute(text("ALTER TABLE question ADD COLUMN sedew VARCHAR(100);"))
         db.session.commit()
     except Exception:
-        db.session.rollback()  # Аль хэдийн багана байгаа бол алгасна
+        db.session.rollback()
 
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_DEBUG", "False") == "True")
+    # Хэрэв бааз хоосон бол туршилтын 2 асуулт автоматаар нэмэх логик
+    if Question.query.count() == 0:
+        demo_q1 = Question(
+            asuult_text="Монгол улсын нийслэл хот юу вэ?",
+            zow_hariult="Улаанбаатар",
+            buruu_hariult1="Дархан",
+            buruu_hariult2="Эрдэнэт",
+            buruu_hariult3="Чойбалсан",
+            angi="12",
+            hicheel="Газарзүй",
+            sedew="Хүн амын газарзүй"
+        )
+        demo_q2 = Question(
+            asuult_text="2-ийг үржих нь 2 тэнцүү хэд вэ?",
+            zow_hariult="4",
+            buruu_hariult1="2",
+            buruu_hariult2="5",
+            buruu_hariult3="6",
+            angi="12",
+            hicheel="Математик",
+            sedew="Үржүүлэхийн үйлдэл"
+        )
+        db.session.add(demo_q1)
+        db.session.add(demo_q2)
+        db.session.commit()
