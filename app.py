@@ -32,6 +32,14 @@ def create_app():
         "pool_pre_ping": True,
         "pool_size": 5,
         "max_overflow": 10,
+        "connect_args": {
+            "connect_timeout": 10
+        }
+    }
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_pre_ping": True,
+        "pool_size": 5,
+        "max_overflow": 10,
     }
 
     db.init_app(app)
@@ -82,6 +90,7 @@ def create_app():
     @app.route("/")
     def index():
         subjects = []
+        db_available = False
         try:
             if Question.query.count() == 0:
                 try:
@@ -94,27 +103,31 @@ def create_app():
                 for row in Question.query.with_entities(Question.angi, Question.hicheel)
                     .distinct().order_by(Question.angi, Question.hicheel).all()
             ]
-        except SAOperationalError:
+            db_available = True
+        except Exception:
             subjects = []
 
         progress_stats = []
-        if current_user.is_authenticated:
-            sessions = TestSession.query.filter_by(suragch_id=current_user.id).all()
-            stats = {}
-            for s in sessions:
-                if not s.too:
-                    continue
-                pct = round((s.niit_onoo or 0) / s.too * 100)
-                subject = s.hicheel or "Тодорхойгүй"
-                stats.setdefault(subject, []).append(pct)
-            for subject, values in stats.items():
-                avg_pct = round(sum(values) / len(values))
-                progress_stats.append({
-                    "hicheel": subject,
-                    "avg": avg_pct,
-                    "tests": len(values)
-                })
-            progress_stats.sort(key=lambda x: x["avg"], reverse=True)
+        if current_user.is_authenticated and db_available:
+            try:
+                sessions = TestSession.query.filter_by(suragch_id=current_user.id).all()
+                stats = {}
+                for s in sessions:
+                    if not s.too:
+                        continue
+                    pct = round((s.niit_onoo or 0) / s.too * 100)
+                    subject = s.hicheel or "Тодорхойгүй"
+                    stats.setdefault(subject, []).append(pct)
+                for subject, values in stats.items():
+                    avg_pct = round(sum(values) / len(values))
+                    progress_stats.append({
+                        "hicheel": subject,
+                        "avg": avg_pct,
+                        "tests": len(values)
+                    })
+                progress_stats.sort(key=lambda x: x["avg"], reverse=True)
+            except Exception:
+                progress_stats = []
 
         return render_template("index.html", progress_stats=progress_stats, subjects=subjects)
 
