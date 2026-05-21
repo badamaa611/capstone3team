@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_bcrypt import Bcrypt
 
-# Манай зассан API Route-үүдийг дуудаж оруулж ирэх
+# Бидний зассан API Route-үүдийг дуудаж оруулж ирэх
 from api.test_routes import test_bp
 from api.ai_routes import ai_bp
 
@@ -27,7 +27,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
-login_manager.login_view = 'login'  # Хэрэв нэвтрээгүй бол энэ хаяг руу шилжүүлнэ
+login_manager.login_view = 'auth.login'  # HTML дээр 'auth.login' гэж дуудаж байгаа тул ижил болгов
 login_manager.login_message = "Энэ хуудас руу хандахын тулд эхлээд нэвтэрнэ үү."
 login_manager.login_message_category = "info"
 
@@ -42,8 +42,8 @@ class User(db.Model, UserMixin):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# --- 4. BLUEPRINTS БҮРТГЭХ (ХАМГИЙН ЧУХАЛ ХЭСЭГ) ---
-# Бидний зассан /api/questions болон /api/generate-adaptive-question хаягууд энд бүртгэгдэнэ
+# --- 4. BLUEPRINTS БҮРТГЭХ ---
+# Фронтоос ирэх /api/questions болон /api/generate-adaptive-question хаягууд энд бүртгэгдэнэ
 app.register_blueprint(test_bp, url_prefix="/api")
 app.register_blueprint(ai_bp, url_prefix="/api")
 
@@ -76,8 +76,9 @@ def result_page():
     return render_template('result.html', onoo=onoo, niit=niit)
 
 # --- 6. ХЭРЭГЛЭГЧ БҮРТГҮҮЛЭХ, НЭВТРЭХ СИСТЕМ ---
+# HTML файлууд доторх {{ url_for('auth.login') }} кодыг алдаа заалгахгүй ажиллуулахын тулд endpoint нэмэв
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'], endpoint='auth.login')
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
@@ -95,7 +96,7 @@ def login():
             
     return render_template('login.html')
 
-@app.route('/register', methods=['GET', 'POST'])
+@app.route('/register', methods=['GET', 'POST'], endpoint='auth.register')
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
@@ -118,19 +119,19 @@ def register():
             db.session.add(new_user)
             db.session.commit()
             flash('Бүртгэл амжилттай боллоо! Одоо нэвтэрч болно.', 'success')
-            return redirect(url_for('login'))
+            return redirect(url_for('auth.login'))
         except Exception as e:
             db.session.rollback()
             flash(f'Бүртгэхэд алдаа гарлаа: {str(e)}', 'danger')
             
     return render_template('register.html')
 
-@app.route('/logout')
+@app.route('/logout', endpoint='auth.logout')
 @login_required
 def logout():
     logout_user()
     flash('Системээс амжилттай гарлаа.', 'success')
-    return redirect(url_for('login'))
+    return redirect(url_for('auth.login'))
 
 # --- 7. СЕРВЕРИЙГ АСААХ БОЛОН БААЗ ҮҮСГЭХ ---
 if __name__ == '__main__':
