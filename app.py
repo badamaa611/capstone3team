@@ -32,14 +32,6 @@ def create_app():
         "pool_pre_ping": True,
         "pool_size": 5,
         "max_overflow": 10,
-        "connect_args": {
-            "connect_timeout": 10
-        }
-    }
-    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        "pool_pre_ping": True,
-        "pool_size": 5,
-        "max_overflow": 10,
     }
 
     db.init_app(app)
@@ -144,13 +136,20 @@ def create_app():
         onoo = request.args.get("onoo", "0")
         return render_template("result.html", onoo=onoo)
 
+    @app.errorhandler(500)
+    def handle_internal_error(error):
+        return render_template("index.html", progress_stats=[], subjects=[]), 500
+
     return app
 
 
 app = create_app()
 
 with app.app_context():
-    db.create_all()
+    try:
+        db.create_all()
+    except Exception as exc:
+        print("Warning: failed to create tables at startup:", exc)
 
 if __name__ == '__main__':
     app.run(debug=True)
