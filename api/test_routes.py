@@ -1,6 +1,6 @@
 import os
 import random
-import google.generativeai as genai
+import google.genai as genai  # Шинэ google.genai сан руу шилжүүлэв
 from flask import Blueprint, jsonify, request
 from flask_login import login_required
 from extensions import db
@@ -8,43 +8,50 @@ from models import Question
 
 test_bp = Blueprint('test', __name__)
 
-# Gemini API тохиргоо
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
 @test_bp.route('/get-questions', methods=['GET'])
 @login_required
 def get_questions():
-    """Баазаас асуултуудыг аваад хариултуудыг нь хольж илгээх"""
-    angi = request.args.get('angi', '')
-    hicheel = request.args.get('hicheel', '')
+    """Фронтэндоос ирсэн анги, хичээлээр баазаас жинхэнэ асуултуудыг шүүж гаргах"""
+    angi = request.args.get('angi', '').strip()
+    hicheel = request.args.get('hicheel', '').strip()
     
     questions = []
     
-    # 1. Хэрэв анги болон хичээл хоёулаа сонгогдсон бол шүүнэ
-    if angi and hicheel:
-        questions = Question.query.filter_by(angi=str(angi), hicheel=str(hicheel)).limit(10).all()
-    
-    # 2. Олдохгүй бол зөвхөн ангиар нь шүүж үзнэ
-    if not questions and angi:
-        questions = Question.query.filter_by(angi=str(angi)).limit(10).all()
+    try:
+        # 1. Алхам: Анги болон Хичээл хоёулаа таарч буй жинхэнэ асуултуудыг шүүнэ
+        if angi and hicheel:
+            # Текст болон тоон хэлбэрээр аль алинаар нь шалгах уян хатан шүүлт
+            questions = Question.query.filter(
+                (Question.angi == str(angi)) & 
+                (Question.hicheel.ilike(f"%{hicheel}%"))
+            ).limit(10).all()
         
-    # 3. Тэгээд ч олдохгүй бол баазад байгаа хамгийн эхний 10 асуултыг шууд гаргана
-    if not questions:
-        questions = Question.query.limit(10).all()
+        # 2. Алхам: Хэрэв хичээлээр олдохгүй бол тухайн ангийн асуултуудаас уншина
+        if not questions and angi:
+            questions = Question.query.filter_by(angi=str(angi)).limit(10).all()
+            
+        # 3. Алхам: Тэгээд ч олдохгүй бол баазад байгаа хамгийн эхний 10 асуултыг шавхаж гаргана
+        if not questions:
+            questions = Question.query.limit(10).all()
+            
+    except Exception as e:
+        # Баазын хүснэгт үүсээгүй эсвэл алдаа гарвал лог дээр хэвлээд цааш үргэлжлүүлнэ
+        print(f"Баазаас асуулт уншихад алдаа гарлаа: {e}")
+        questions = []
 
-    # 4. Бааз бүрмөсөн хоосон үед түр туршиж үзэх демо асуултыг кодон дотроос шууд өгнө
+    # 4. Алхам: Хэрэв бааз бүрмөсөн хоосон хэвээр байвал сурагчийг гацаахгүйн тулд түр системээс харуулна
     if not questions:
         return jsonify({
             "questions": [
                 {
                     "id": 999,
-                    "asuult": "Монгол улсын нийслэл хот юу вэ? (Системийн демо асуулт)",
-                    "sedew": "Ерөнхий мэдлэг",
+                    "asuult": f"Уучлаарай, {angi}-р ангийн '{hicheel}' хичээлийн асуулт баазад хараахан ороогүй байна. (Багш Google Sheet-ээс импортлох шаардлагатай)",
+                    "sedew": "Системийн мэдэгдэл",
                     "choices": [
-                        {"text": "Улаанбаатар", "is_correct": True},
-                        {"text": "Дархан", "is_correct": False},
-                        {"text": "Эрдэнэт", "is_correct": False},
-                        {"text": "Чойбалсан", "is_correct": False}
+                        {"text": "Ойлголоо, багшид мэдэгдэе", "is_correct": True},
+                        {"text": "Дахин ачааллах", "is_correct": False},
+                        {"text": "Буцах", "is_correct": False},
+                        {"text": "Өөр хичээл сонгох", "is_correct": False}
                     ]
                 }
             ]
@@ -52,9 +59,9 @@ def get_questions():
 
     output = []
     for q in questions:
-        # Баганы нэрс asuult уу эсвэл asuult_text үү гэдгийг уян хатан унших
+        # Баазын баганын нэрсийг (asuult/asuult_text, zow/zow_hariult) уян хатан унших хамгаалалт
         asuult_txt = getattr(q, 'asuult_text', None) or getattr(q, 'asuult', 'Асуултын текст олдсонгүй')
-        zow_ans = getattr(q, 'zow_hariult', None) or getattr(q, 'zow', 'Зөв хариулт олдсонгүй')
+        zow_ans = getattr(q, 'zow_hariult', None) or getattr(q, 'zow', None) or getattr(q, 'zow_hariult1', 'Зөв хариулт')
         b1 = getattr(q, 'buruu_hariult1', None) or getattr(q, 'buruu1', 'Буруу хариулт 1')
         b2 = getattr(q, 'buruu_hariult2', None) or getattr(q, 'buruu2', 'Буруу хариулт 2')
         b3 = getattr(q, 'buruu_hariult3', None) or getattr(q, 'buruu3', 'Буруу хариулт 3')
@@ -66,7 +73,7 @@ def get_questions():
             {"text": b2, "is_correct": False},
             {"text": b3, "is_correct": False}
         ]
-        # Хариултуудыг санамсаргүйгээр холих
+        # Сурагч бүрт хариултын байрлалыг солиж холих
         random.shuffle(choices)
         
         output.append({
@@ -82,7 +89,7 @@ def get_questions():
 @test_bp.route('/submit-test', methods=['POST'])
 @login_required
 def submit_test():
-    """Шалгалтын үр дүнг тооцож, алдсан сэдвээр Gemini-ээр асуулт үүсгэх"""
+    """Шалгалтын үр дүнг тооцож, алдсан сэдвээр Gemini AI-аар бататгах дасгал үүсгэх"""
     data = request.json or {}
     answers = data.get('answers', [])
     
@@ -94,42 +101,44 @@ def submit_test():
         q_id = ans.get('question_id')
         selected = ans.get('selected_text')
         
-        # Демо асуултыг шалгах хэсэг
         if q_id == 999:
-            if selected == "Улаанбаатар":
-                zow_too += 1
-            else:
-                buruu_too += 1
-                aldsan_sedwuwd.add("Монголын газарзүй")
+            zow_too += 1
             continue
             
-        q = Question.query.get(q_id)
-        if q:
-            zow_ans = getattr(q, 'zow_hariult', None) or getattr(q, 'zow', '')
-            sedew_ner = getattr(q, 'sedew', 'Ерөнхий сэдэв') or 'Ерөнхий сэдэв'
-            
-            if zow_ans == selected:
-                zow_too += 1
-            else:
-                buruu_too += 1
-                aldsan_sedwuwd.add(sedew_ner)
+        try:
+            q = Question.query.get(q_id)
+            if q:
+                zow_ans = getattr(q, 'zow_hariult', None) or getattr(q, 'zow', '')
+                sedew_ner = getattr(q, 'sedew', 'Ерөнхий сэдэв') or 'Ерөнхий сэдэв'
+                
+                if str(zow_ans).strip() == str(selected).strip():
+                    zow_too += 1
+                else:
+                    buruu_too += 1
+                    aldsan_sedwuwd.add(sedew_ner)
+        except Exception:
+            buruu_too += 1
                     
     if aldsan_sedwuwd:
         sedew_str = ", ".join(list(aldsan_sedwuwd))
         prompt = (
-            f"Чи бол Монголын ЕБС-ийн багшид туслах AI байна. Сурагч тест өгөөд дараах сэдвүүд дээр алдсан байна: {sedew_str}.\n"
-            f"Эдгээр сэдэв тус бүрээр сурагчийн мэдлэгийг бататгах зорилгоор яг 3, 3 ижил түвшний, сонгох хувилбартай (MCQ) шинэ асуулт зохиож өгнө үү.\n"
-            f"Асуулт бүрийн доор зөв хариултыг нь заавал тэмдэглэж, маш тодорхой Монгол хэлээр харуулна уу."
+            f"Чи бол Super Brain системийн ухаалаг AI багш байна. Сурагч тест өгөөд дараах сэдвүүд дээр алдсан байна: {sedew_str}.\n"
+            f"Эдгээр сэдэв тус бүрээр сурагчийн мэдлэгийг бататгах зорилгоор сонгох хувилбартай (MCQ) шинээр 2 асуулт зохиож өгнө үү.\n"
+            f"Асуулт бүрийн доор зөв хариултыг нь заавал тэмдэглэж, тайлбарыг Монгол хэлээр маш тодорхой харуулна уу."
         )
         
         try:
-            model = genai.GenerativeModel('gemini-pro')
-            response = model.generate_content(prompt)
+            # Сүүлийн үеийн google-genai сангийн дуудлага
+            client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=prompt,
+            )
             ai_output = response.text
         except Exception as e:
-            ai_output = "Тестийн хариу амжилттай тооцогдлоо. Гэвч Gemini AI-тай холбогдоход алдаа гарлаа. Хичээлээ сайн давтаарай!"
+            ai_output = f"Тестийн хариу амжилттай тооцогдлоо. Гэвч AI зөвлөхтэй холбогдоход алдаа гарлаа: {e}"
     else:
-        ai_output = "🎉 Баяр хүргэе! Та бүх асуултандаа зөв хариулж, 100% амжилт үзүүллээ."
+        ai_output = "🎉 Төгс гүйцэтгэл! Та бүх асуултандаа 100% зөв хариуллаа. Маш сайн байна!"
 
     return jsonify({
         "status": "success",
