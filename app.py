@@ -155,3 +155,12 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_DEBUG", "False") == "True")
+    with app.app_context():
+    db.create_all()
+    # Хэрэв баазад sedew гэдэг багана байхгүй бол алдаа гаргалгүй шууд нэмэх логик
+    try:
+        from sqlalchemy import text
+        db.session.execute(text("ALTER TABLE question ADD COLUMN sedew VARCHAR(100);"))
+        db.session.commit()
+    except Exception:
+        db.session.rollback() # Аль хэдийн багана байгаа бол алгасна
