@@ -147,20 +147,19 @@ def logout():
     return redirect(url_for('auth.login'))
 
 
-# Хэрэв хүснэгтүүд байхгүй бол апп асах урсгалд автоматаар үүсгэнэ
+# --- app.py-ийн хамгийн доод хэсэг ---
+
 with app.app_context():
     db.create_all()
-
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_DEBUG", "False") == "True")
-    with app.app_context():
-    db.create_all()
-    # Хэрэв баазад sedew гэдэг багана байхгүй бол алдаа гаргалгүй шууд нэмэх логик
+    # Хэрэв баазад sedew гэдэг багана байхгүй бол автоматаар нэмэх логик
     try:
         from sqlalchemy import text
         db.session.execute(text("ALTER TABLE question ADD COLUMN sedew VARCHAR(100);"))
         db.session.commit()
     except Exception:
-        db.session.rollback() # Аль хэдийн багана байгаа бол алгасна
+        db.session.rollback()  # Аль хэдийн багана байгаа бол алгасна
+
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_DEBUG", "False") == "True")
