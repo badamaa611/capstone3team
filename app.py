@@ -146,13 +146,12 @@ def logout():
     flash('Системээс амжилттай гарлаа.', 'info')
     return redirect(url_for('auth.login'))
 
-
-# --- app.py-ийн доод хэсгийг ингэж шинэчилнэ ---
+# --- app.py-ийн хамгийн доод хэсэг ---
 
 with app.app_context():
     db.create_all()
     
-    # Баганы хамгаалалт
+    # 1. Сэдэв багана байхгүй бол нэмэх хамгаалалт
     try:
         from sqlalchemy import text
         db.session.execute(text("ALTER TABLE question ADD COLUMN sedew VARCHAR(100);"))
@@ -160,28 +159,37 @@ with app.app_context():
     except Exception:
         db.session.rollback()
 
-    # Хэрэв бааз хоосон бол туршилтын 2 асуулт автоматаар нэмэх логик
-    if Question.query.count() == 0:
-        demo_q1 = Question(
-            asuult_text="Монгол улсын нийслэл хот юу вэ?",
-            zow_hariult="Улаанбаатар",
-            buruu_hariult1="Дархан",
-            buruu_hariult2="Эрдэнэт",
-            buruu_hariult3="Чойбалсан",
-            angi="12",
-            hicheel="Газарзүй",
-            sedew="Хүн амын газарзүй"
-        )
-        demo_q2 = Question(
-            asuult_text="2-ийг үржих нь 2 тэнцүү хэд вэ?",
-            zow_hariult="4",
-            buruu_hariult1="2",
-            buruu_hariult2="5",
-            buruu_hariult3="6",
-            angi="12",
-            hicheel="Математик",
-            sedew="Үржүүлэхийн үйлдэл"
-        )
-        db.session.add(demo_q1)
-        db.session.add(demo_q2)
-        db.session.commit()
+    # 2. Моделийн нэр харгалзахгүй шууд SQL-ээр туршилтын асуулт нэмэх (Хамгийн аюулгүй)
+    try:
+        from sqlalchemy import text
+        # Бааз хоосон эсэхийг шалгах
+        count_res = db.session.execute(text("SELECT COUNT(*) FROM question;")).scalar()
+        
+        if count_res == 0:
+            # Таны баазын баганууд ямар ч нэртэй байсан ажиллах уян хатан хайлт
+            columns_res = db.session.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='question';")).fetchall()
+            cols = [r[0] for r in columns_res]
+            
+            # Хэрэв тухайн баганы нэрс байвал тохирох SQL асуулга үүсгэнэ
+            q_col = 'asuult_text' if 'asuult_text' in cols else 'asuult'
+            z_col = 'zow_hariult' if 'zow_hariult' in cols else 'zow'
+            b1_col = 'buruu_hariult1' if 'buruu_hariult1' in cols else 'buruu1'
+            b2_col = 'buruu_hariult2' if 'buruu_hariult2' in cols else 'buruu2'
+            b3_col = 'buruu_hariult3' if 'buruu_hariult3' in cols else 'buruu3'
+            
+            # SQL Query ажиллуулах
+            insert_query = text(f"""
+                INSERT INTO question ({q_col}, {z_col}, {b1_col}, {b2_col}, {b3_col}, angi, hicheel, sedew)
+                VALUES ('Монгол улсын нийслэл хот юу вэ?', 'Улаанбаатар', 'Дархан', 'Эрдэнэт', 'Чойбалсан', '12', 'Газарзүй', 'Хүн амын газарзүй');
+            """)
+            db.session.execute(insert_query)
+            db.session.commit()
+            print("=== Демо асуултыг SQL-ээр амжилттай нэмлээ ===")
+    except Exception as e:
+        db.session.rollback()
+        print(f"=== Демо асуулт нэмэхийг алгаслаа: {str(e)} ===")
+
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_DEBUG", "False") == "True")
