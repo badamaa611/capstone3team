@@ -13,7 +13,7 @@ from api.ai_routes import ai_bp
 
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__, template_folder="templates", static_folder="static")
     app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-12345")
 
     raw_db_url = os.environ.get("DATABASE_URL", "sqlite:///users.db")
@@ -79,24 +79,40 @@ def create_app():
         logout_user()
         return redirect(url_for("index"))
 
+    @app.route("/health")
+    def health():
+        """Health check endpoint - no DB required"""
+        return {"status": "ok", "version": "1.0"}, 200
+
     @app.route("/")
     def index():
         subjects = []
         db_available = False
+        
+        # Try to create tables on first request if they don't exist
         try:
-            if Question.query.count() == 0:
+            db.create_all()
+        except Exception as e:
+            app.logger.warning(f"Failed to create tables: {e}")
+        
+        try:
+            # Check if questions exist in DB
+            count = Question.query.count()
+            if count == 0:
                 try:
                     import_sheet_questions()
-                except Exception:
-                    pass
+                except Exception as e:
+                    app.logger.warning(f"Failed to import sheet: {e}")
 
+            # Get distinct subjects
             subjects = [
                 {"angi": row[0], "hicheel": row[1]}
                 for row in Question.query.with_entities(Question.angi, Question.hicheel)
                     .distinct().order_by(Question.angi, Question.hicheel).all()
             ]
             db_available = True
-        except Exception:
+        except Exception as e:
+            app.logger.error(f"Error in index DB query: {e}", exc_info=True)
             subjects = []
 
         progress_stats = []
@@ -118,10 +134,15 @@ def create_app():
                         "tests": len(values)
                     })
                 progress_stats.sort(key=lambda x: x["avg"], reverse=True)
-            except Exception:
+            except Exception as e:
+                app.logger.error(f"Error getting progress: {e}", exc_info=True)
                 progress_stats = []
 
-        return render_template("index.html", progress_stats=progress_stats, subjects=subjects)
+        try:
+            return render_template("index.html", progress_stats=progress_stats, subjects=subjects)
+        except Exception as e:
+            app.logger.error(f"Error rendering template: {e}", exc_info=True)
+            return "<html><head><title>Error</title></head><body>Template rendering failed</body></html>", 500
 
     @app.route("/test")
     def test_page():
@@ -136,20 +157,18 @@ def create_app():
         onoo = request.args.get("onoo", "0")
         return render_template("result.html", onoo=onoo)
 
-    @app.errorhandler(500)
-    def handle_internal_error(error):
-        return render_template("index.html", progress_stats=[], subjects=[]), 500
-
     return app
 
 
 app = create_app()
 
-with app.app_context():
-    try:
-        db.create_all()
-    except Exception as exc:
-        print("Warning: failed to create tables at startup:", exc)
+# Don't call db.create_all() at startup on Render - it causes timeouts
+# Tables will be created on first request if needed
+# with app.app_context():
+#     try:
+#         db.create_all()
+#     except Exception as exc:
+#         print("Warning: failed to create tables at startup:", exc)
 
 if __name__ == '__main__':
     app.run(debug=True)
