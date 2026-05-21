@@ -3,92 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ЭЕШ Бэлтгэл Платформ</title>
+    <title>Super Brain - Цогц Систем</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #2563eb; /* Super Brain Blue */
+            --secondary-color: #1e293b;
+            --accent-color: #10b981;
+            --bg-light: #f8fafc;
+        }
         body {
-            background-color: #f8f9fa;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            font-family: 'Inter', sans-serif;
+            color: var(--secondary-color);
+        }
+        h1, h2, h3, .navbar-brand {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
         }
         .navbar {
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            background-color: #ffffff !important;
+            background: #ffffff !important;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 15px 0;
+        }
+        .navbar-brand {
+            font-size: 1.5rem;
+            color: var(--primary-color) !important;
+            letter-spacing: -1px;
         }
         .nav-link {
-            font-weight: 500;
-            color: #495057;
+            font-weight: 600;
+            margin: 0 10px;
+            transition: 0.3s;
         }
         .nav-link:hover {
-            color: #0d6efd;
+            color: var(--primary-color) !important;
         }
-        .user-welcome {
+        .user-badge {
+            background: #eff6ff;
+            padding: 5px 15px;
+            border-radius: 50px;
+            color: var(--primary-color);
             font-weight: 600;
-            color: #0d6efd;
-            margin-right: 15px;
         }
-        .progress-nav {
-            min-width: 120px;
+        .card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            transition: 0.3s;
         }
-        .progress {
-            height: 8px;
-            border-radius: 4px;
+        .btn-primary {
+            background-color: var(--primary-color);
+            border: none;
+            padding: 10px 25px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+            transform: translateY(-2px);
         }
     </style>
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="/">
-                <i class="fa-solid fa-graduation-cap text-primary me-2 fs-3"></i>
-                <span class="fw-bold text-dark text-uppercase tracking-wider">Capstone-ESI</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-collapse navbar-nav me-auto mb-2 mb-lg-0 align-items-lg-center">
-                    {% if current_user.is_authenticated %}
-                    <li class="nav-item">
-                        <span class="user-welcome d-flex align-items-center">
-                            <i class="fa-solid fa-circle-user me-2"></i> Сайн байна уу, {{ current_user.username }} 👋
-                        </span>
-                    </li>
-                    <li class="nav-item px-2 d-flex align-items-center">
-                        <div class="progress-nav">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <small class="text-muted fw-bold" style="font-size: 11px;">Сургалтын явц:</small>
-                                <span class="badge bg-success" style="font-size: 10px;">85%</span>
-                            </div>
-                            <div class="progress">
-                                <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar" style="width: 85%"></div>
-                            </div>
-                        </div>
-                    </li>
-                    {% endif %}
-                </ul>
-                
-                <div class="d-flex align-items-center gap-3">
-                    <a href="/" class="nav-link"><i class="fa-solid fa-house me-1"></i> Нүүр</a>
-                    <a href="/tests" class="nav-link"><i class="fa-solid fa-file-pen me-1"></i> Тестүүд</a>
-                    <a href="/ai-chat" class="nav-link"><i class="fa-solid fa-robot text-primary me-1"></i> AI Зөвлөх</a>
-                    {% if current_user.is_authenticated %}
-                        <a href="/auth/logout" class="btn btn-outline-danger btn-sm rounded-pill px-3"><i class="fa-solid fa-right-from-bracket me-1"></i> Гарах</a>
-                    {% else %}
-                        <a href="/auth/login" class="btn btn-primary btn-sm rounded-pill px-3">Нэвтрэх</a>
-                    {% endif %}
-                </div>
+<nav class="navbar navbar-expand-lg sticky-top">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center" href="/">
+            <i class="fa-solid fa-brain me-2"></i> SUPER BRAIN
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto align-items-center">
+                {% if current_user.is_authenticated %}
+                <li class="nav-item">
+                    <span class="user-badge ms-lg-3">
+                         Сайн байна уу, {{ current_user.username }} 👋
+                    </span>
+                </li>
+                {% endif %}
+            </ul>
+            <div class="navbar-nav align-items-center">
+                <a href="/" class="nav-link">Нүүр</a>
+                <a href="/tests" class="nav-link">Тестүүд</a>
+                <a href="/ai-chat" class="nav-link text-primary"><i class="fa-solid fa-robot"></i> AI Зөвлөх</a>
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm ms-lg-3">Гарах</a>
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-sm ms-lg-3">Нэвтрэх</a>
+                {% endif %}
             </div>
         </div>
-    </nav>
-
-    <div class="container my-4">
-        {% block content %}
-        {% endblock %}
     </div>
+</nav>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<div class="container mt-4 mb-5">
+    {% block content %}{% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
