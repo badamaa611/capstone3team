@@ -147,8 +147,21 @@ def register():
     return render_template('register.html')
 # ==================================================
 
-
-@app.route('/logout', endpoint='auth.logout')
+    @app.route('/logout', endpoint='auth.logout')
 @login_required
 def logout():
-    # ... logout-ий кодууд доор нь үргэлжилнэ ...
+    logout_user()
+    flash('Системээс амжилттай гарлаа.', 'info')
+    return redirect(url_for('auth.login'))
+
+
+# --- 6. ӨГӨГДЛИЙН БААЗ ҮҮСГЭХ ХЭСЭГ ---
+def init_database():
+    try:
+        with app.app_context():
+            db.create_all()  # Хүснэгт байхгүй бол шинээр үүсгэнэ
+            print("Өгөгдлийн бааз амжилттай шалгагдлаа (Бэлэн байна).")
+    except Exception as e:
+        print(f"Бааз үүсгэхэд алдаа гарлаа: {e}")
+
+init_database()
