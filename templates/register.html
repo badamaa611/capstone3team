@@ -23,7 +23,7 @@
       <form method="POST" action="{{ url_for('auth.register') }}">
         <div class="form-group">
           <label>Нэр</label>
-          <input type="text" name="ner" required placeholder="Таны нэр">
+          <input type="text" name="username" required placeholder="Таны нэр">
         </div>
         <div class="form-group">
           <label>И-мэйл</label>
@@ -31,18 +31,18 @@
         </div>
         <div class="form-group">
           <label>Нууц үг</label>
-          <input type="password" name="nuuts_ug" required placeholder="Нууц үг">
+          <input type="password" name="password" required placeholder="Нууц үг">
         </div>
         <div class="form-group">
           <label>Хэн бэ?</label>
-          <select name="duwer">
+          <select name="role">
             <option value="suragch">Сурагч</option>
             <option value="bagsh">Багш</option>
           </select>
         </div>
         <div class="form-group">
           <label>Анги</label>
-          <input type="text" name="angi" placeholder="Жишээ: 12А">
+          <input type="text" name="grade" placeholder="Жишээ: 12А">
         </div>
         <button type="submit" class="btn-primary">Бүртгүүлэх</button>
       </form>

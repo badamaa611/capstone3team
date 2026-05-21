@@ -126,13 +126,51 @@ def register():
             
     return render_template('register.html')
 
-@app.route('/logout', endpoint='auth.logout')
-@login_required
-def logout():
-    logout_user()
-    flash('Системээс амжилттай гарлаа.', 'success')
-    return redirect(url_for('auth.login'))
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        # Формын талбаруудаас утгыг унших (HTML-ийн name="..."-тэй таарах ёстой)
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        role = request.form.get('role')    # Шинэ талбар
+        grade = request.form.get('grade')  # Шинэ талбар
 
+        # Аль нэг чухал талбар хоосон ирсэн эсэхийг шалгах
+        if not username or not email or not password:
+            flash('Нэр, И-мэйл, Нууц үг талбарыг заавал бөглөнө үү!', 'danger')
+            return render_template('register.html')
+
+        # И-мэйл давхардаж байгаа эсэхийг шалгах
+        user_exists = User.query.filter_by(email=email).first()
+        if user_exists:
+            flash('Энэ и-мэйл хаяг аль хэдийн бүртгэгдсэн байна.', 'danger')
+            return render_template('register.html')
+
+        # Нууц үгийг хаш код руу хөрвүүлэх
+        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+        
+        # Шинэ хэрэглэгчийг үүсгэх (Хэрэв таны User моделд role, grade байгаа бол)
+        # Хэрэв User моделд role, grade байхгүй бол доорх мөрийг зөвхөн username, email, password-оор үлдээгээрэй
+        new_user = User(
+            username=username, 
+            email=email, 
+            password=hashed_password,
+            role=role if role else 'student',  # Хэрэв хоосон бол сурагчаар авна
+            grade=grade
+        )
+        
+        try:
+            db.session.add(new_user)
+            db.session.commit()
+            flash('Амжилттай бүртгүүллээ! Одоо нэвтэрнэ үү.', 'success')
+            return redirect(url_for('login'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Бааз руу хадгалахад алдаа гарлаа: {str(e)}', 'danger')
+            return render_template('register.html')
+
+    return render_template('register.html')
 # --- 7. СЕРВЕРИЙГ АСААХ БОЛОН БААЗ ҮҮСГЭХ ---
 # Хүснэгтүүдийг апп асахаас өмнө аюулгүй бэлдэх функц
 def init_database():
