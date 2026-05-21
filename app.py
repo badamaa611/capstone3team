@@ -158,6 +158,18 @@ def init_database():
         print(f"Бааз үүсгэхэд алдаа гарлаа: {e}")
 
 init_database()
+# --- 7. СЕРВЕРИЙГ АСААХ БОЛОН БААЗ ҮҮСГЭХ ---
+def init_database():
+    try:
+        with app.app_context():
+            # Анхаар: Хуучин буруу бүтэцтэй хүснэгтийг устгаж, шинэчлэх тушаал
+            db.drop_all() 
+            db.create_all()
+            print("Өгөгдлийн баазыг амжилттай цэвэрлэж, шинээр үүсгэлээ!")
+    except Exception as e:
+        print(f"Бааз үүсгэхэд алдаа гарлаа: {e}")
+
+init_database()
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
