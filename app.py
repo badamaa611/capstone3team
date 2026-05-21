@@ -134,11 +134,19 @@ def logout():
     return redirect(url_for('auth.login'))
 
 # --- 7. СЕРВЕРИЙГ АСААХ БОЛОН БААЗ ҮҮСГЭХ ---
+# Хүснэгтүүдийг апп асахаас өмнө аюулгүй бэлдэх функц
+def init_database():
+    try:
+        with app.app_context():
+            db.create_all()
+            print("Өгөгдлийн баазын хүснэгтүүд амжилттай үүслээ эсвэл бэлэн байна.")
+    except Exception as e:
+        print(f"Бааз үүсгэхэд алдаа гарлаа (гэхдээ апп-ыг үргэлжлүүлэн асаана): {e}")
+
+# Render эсвэл локал дээр ажиллахаас үл хамааран баазыг шалгана
+init_database()
+
 if __name__ == '__main__':
-    # Програм асах үед баазын хүснэгтүүд байхгүй бол автоматаар үүсгэнэ
-    with app.app_context():
-        db.create_all()
-        
     # Порт тохируулга (Render-ийн шаардлагаар 0.0.0.0 порт дээр асна)
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_DEBUG", "False") == "True")
