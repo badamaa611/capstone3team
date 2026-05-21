@@ -1,99 +1,36 @@
 ﻿import os
-import random
-import google.generativeai as genai
 from flask import Blueprint, jsonify, request
-from flask_login import login_required, current_user
-from extensions import db
-from models import Question, TestSession, TestAnswer, WeakTopic
+from flask_login import login_required
+from google import genai  # Шинэчлэгдсэн Google GenAI сан
 
-test_bp = Blueprint('test', __name__)
+ai_bp = Blueprint('ai', __name__)
 
-# Gemini AI Тохиргоо (Render-ийн Environment Variable-аас уншина)
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+# Шинэ тохиргооны дагуу Client үүсгэх
+# Render дээрх GEMINI_API_KEY хувьсагчаас автоматаар уншина
+client = genai.Client()
 
-@test_bp.route('/get-questions', methods=['GET'])
+@ai_bp.route('/ai-chat', methods=['POST'])
 @login_required
-def get_questions():
-    """Баазаас асуултуудыг аваад хариултуудыг нь доор дээр нь оруулж холих"""
-    angi = request.args.get('angi', '12')
-    hicheel = request.args.get('hicheel', '')
-    
-    # Сонгосон анги, хичээлийн дагуу эхний 10 асуултыг авна
-    questions = Question.query.filter_by(angi=angi, hicheel=hicheel).limit(10).all()
-    
-    if not questions:
-        # Хэрэв тухайн хичээлээр асуулт олдохгүй бол тест хийхэд зориулж бүх асуултаас хайна
-        questions = Question.query.filter_by(angi=angi).limit(10).all()
-
-    output = []
-    for q in questions:
-        # Хариултуудыг нэг жагсаалтад цуглуулах
-        choices = [
-            {"text": q.zow_hariult, "is_correct": True},
-            {"text": q.buruu_hariult1, "is_correct": False},
-            {"text": q.buruu_hariult2, "is_correct": False},
-            {"text": q.buruu_hariult3, "is_correct": False}
-        ]
-        # Хариултуудыг санамсаргүйгээр холих (Shuffle)
-        random.shuffle(choices)
-        
-        output.append({
-            "id": q.id,
-            "asuult": q.asuult_text,
-            "sedew": q.sedew if q.sedew else "Ерөнхий сэдэв",
-            "choices": choices
-        })
-        
-    return jsonify({"questions": output})
-
-
-@test_bp.route('/submit-test', methods=['POST'])
-@login_required
-def submit_test():
-    """Шалгалтын үр дүнг тооцож, алдсан сэдвээр Gemini-ээр асуулт үүсгэх"""
+def ai_chat():
+    """Сурагчтай ерөнхий байдлаар харилцах эсвэл тусламж үзүүлэх AI чат"""
     data = request.json or {}
-    answers = data.get('answers', [])
+    user_message = data.get('message', '').strip()
     
-    zow_too = 0
-    buruu_too = 0
-    aldsan_sedwuwd = set()
-    
-    for ans in answers:
-        q_id = ans.get('question_id')
-        selected = ans.get('selected_text')
+    if not user_message:
+        return jsonify({"status": "error", "message": "Зурвас хоосон байна."}), 400
         
-        q = Question.query.get(q_id)
-        if q:
-            is_correct = (q.zow_hariult == selected)
-            if is_correct:
-                zow_too += 1
-            else:
-                buruu_too += 1
-                if q.sedew:
-                    aldsan_sedwuwd.add(q.sedew)
-                    
-    # Gemini AI ашиглан бататгах асуулт үүсгэх
-    if aldsan_sedwuwd:
-        sedew_str = ", ".join(list(aldsan_sedwuwd))
-        prompt = (
-            f"Чи бол Монголын ЕБС-ийн багшид туслах AI байна. Сурагч тест өгөөд дараах сэдвүүд дээр алдсан байна: {sedew_str}.\n"
-            f"Эдгээр сэдэв тус бүрээр сурагчийн мэдлэгийг бататгах зорилгоор яг 3, 3 ижил түвшний, сонгох хувилбартай (MCQ) шинэ асуулт зохиож өгнө үү.\n"
-            f"Асуулт бүрийн доор зөв хариултыг нь заавал тэмдэглэж, маш тодорхой Монгол хэлээр харуулна уу."
+    try:
+        # Шинэ сангийн дагуу gemini-2.5 буюу хамгийн сүүлийн загварыг ашиглах
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=user_message
         )
-        
-        try:
-            model = genai.GenerativeModel('gemini-pro')
-            response = model.generate_content(prompt)
-            ai_output = response.text
-        except Exception as e:
-            ai_output = f"Gemini AI-тай холбогдоход алдаа гарлаа: {str(e)}. Гэхдээ алдсан сэдвүүдээ сурах бичгээсээ дахин хараарай!"
-    else:
-        ai_output = "🎉 Баяр хүргэе! Та бүх асуултандаа зөв хариулж, 100% амжилт үзүүллээ. Алдсан сэдэв байхгүй тул шинэ асуулт алга."
-
-    return jsonify({
-        "status": "success",
-        "zow_too": zow_too,
-        "buruu_too": buruu_too,
-        "niit_asuult": len(answers) if answers else zow_too + buruu_too,
-        "ai_recommendation": ai_output
-    })
+        return jsonify({
+            "status": "success",
+            "reply": response.text
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": f"AI хариу өгөхөд алдаа гарлаа: {str(e)}"
+        }), 500
