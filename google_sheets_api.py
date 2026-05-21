@@ -17,19 +17,38 @@ SHEET_GID = os.getenv("GOOGLE_SHEET_GID", "830552134")
 SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE", "service_account.json")
 SERVICE_ACCOUNT_JSON = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "")
 
+_sheet_cache = None
+_cache_timestamp = None
+CACHE_TTL = 3600  # 1 hour
+
 
 def get_sheet_csv_url(gid=None):
     gid = gid or SHEET_GID
     return f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={gid}"
 
 
-def get_sheet_data(gid=None):
+def get_sheet_data(gid=None, use_cache=True):
+    """Fetch Sheet data with caching support"""
+    global _sheet_cache, _cache_timestamp
+    
+    # Check cache
+    if use_cache and _sheet_cache is not None:
+        now = datetime.now().timestamp()
+        if _cache_timestamp and (now - _cache_timestamp) < CACHE_TTL:
+            return _sheet_cache
+    
     url = get_sheet_csv_url(gid)
-    response = requests.get(url, timeout=30)
+    # Increased timeout for Render environment
+    response = requests.get(url, timeout=60)
     response.raise_for_status()
     text = response.content.decode("utf-8-sig")
-    return list(csv.DictReader(StringIO(text)))
-
+    data = list(csv.DictReader(StringIO(text)))
+    
+    # Cache result
+    _sheet_cache = data
+    _cache_timestamp = datetime.now().timestamp()
+    
+    return data
 
 def normalize(value):
     return str(value or "").strip()
