@@ -146,8 +146,18 @@ def register():
             
     return render_template('register.html')
 # ==================================================
+try:
+            db.session.add(new_user)
+            db.session.commit()
+            flash('Бүртгэл амжилттай боллоо! Одоо нэвтэрч болно.', 'success')
+            return redirect(url_for('auth.login'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Бүртгэхэд алдаа гарлаа: {str(e)}', 'danger')
+            
+    return render_template('register.html')
 
-    @app.route('/logout', endpoint='auth.logout')
+
 @app.route('/logout', endpoint='auth.logout')
 @login_required
 def logout():
@@ -165,7 +175,7 @@ def init_database():
         print(f"Бааз үүсгэхэд алдаа гарлаа: {e}")
 
 init_database()
-# ==================================
+
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
