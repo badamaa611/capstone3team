@@ -1,29 +1,61 @@
 {% extends "base.html" %}
-{% block title %}Үр дүн{% endblock %}
 {% block content %}
-<div class="result-box">
-  <h2>Тестийн үр дүн</h2>
-  <div class="score-circle">
-    <span id="onoo">0</span><small>/30</small>
-  </div>
+<div class="container mt-5">
+    <div class="card p-5 shadow-lg border-0 rounded-3">
+        <h2 class="text-center text-success mb-4 fw-bold">🎉 Шалгалтын нэгдсэн дүн</h2>
+        
+        <div class="row text-center my-4 g-3">
+            <div class="col-md-4">
+                <div class="p-3 bg-light rounded-3 border">
+                    <h5 class="text-muted">Нийт асуулт</h5>
+                    <p id="total-q" class="display-5 fw-bold text-dark">0</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 bg-light rounded-3 border border-success">
+                    <h5 class="text-success">Зөв хариулсан</h5>
+                    <p id="correct-q" class="display-5 fw-bold text-success">0</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 bg-light rounded-3 border border-danger">
+                    <h5 class="text-danger">Буруу хариулсан</h5>
+                    <p id="wrong-q" class="display-5 fw-bold text-danger">0</p>
+                </div>
+            </div>
+        </div>
 
-  <div class="weak-topics">
-    <h3>⚠️ Сул сэдвүүд</h3>
-    <div id="weak-list"><!-- JS дүүргэнэ --></div>
-  </div>
+        <hr class="my-4">
 
-  <div class="ai-questions" id="ai-section" style="display:none">
-    <h3>🤖 AI нэмэлт дасгал</h3>
-    <p>Алдаатай сэдвүүд дээр нэмэлт асуулт үүсгэж байна...</p>
-    <div id="ai-questions-list"></div>
-  </div>
+        <div class="text-start">
+            <div class="d-flex align-items-center mb-3">
+                <div class="spinner-grow spinner-grow-sm text-warning me-2" role="status"></div>
+                <h4 class="text-warning fw-bold mb-0">🤖 Gemini AI Бататгах зөвлөмж & Шинэ асуултууд:</h4>
+            </div>
+            
+            <div id="ai-suggestion" class="p-4 bg-dark text-light border rounded-3 style-pre-line shadow-sm" style="white-space: pre-line; line-height: 1.7; font-family: 'Courier New', Courier, monospace;">
+                Таны алдсан сэдэвт тохирсон бататгах 3 асуултыг Gemini системээс ачаалж байна...
+            </div>
+        </div>
 
-  <div class="result-actions">
-    <button class="btn-primary" onclick="location.href='/'">Дахин тест өгөх</button>
-    <button class="btn-secondary" onclick="loadAIQuestions()">🤖 AI дасгал үзэх</button>
-  </div>
+        <div class="text-center mt-5">
+            <a href="/" class="btn btn-primary btn-lg px-5 shadow">Нүүр хуудас руу буцах</a>
+        </div>
+    </div>
 </div>
-{% endblock %}
-{% block extra_js %}
-  <script src="{{ url_for('static', filename='js/test.js') }}"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const resultData = sessionStorage.getItem('test_result');
+    if(resultData) {
+        const res = JSON.parse(resultData);
+        document.getElementById('total-q').innerText = res.niit_asuult;
+        document.getElementById('correct-q').innerText = res.zow_too;
+        document.getElementById('wrong-q').innerText = res.buruu_too;
+        document.getElementById('ai-suggestion').innerText = res.ai_recommendation;
+    } else {
+        document.getElementById('ai-suggestion').innerHTML = '<span class="text-danger">Шалгалтын үр дүн олдсонгүй. Эхлээд тестээ өгнө үү.</span>';
+    }
+});
+</script>
 {% endblock %}

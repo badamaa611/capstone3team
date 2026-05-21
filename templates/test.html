@@ -1,316 +1,109 @@
 ﻿{% extends "base.html" %}
-{% block title %}Тест{% endblock %}
-{% block extra_css %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/test.css') }}">
-  <style>
-    /* Gemini-ийн асуулт гарч ирэхэд харагдах тусгай загвар */
-    .gemini-adaptive-box {
-      border: 1px dashed var(--purple2, #7F77DD) !important;
-      background: rgba(127, 119, 221, 0.05) !important;
-    }
-    .gemini-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      background: linear-gradient(135deg, #378ADD, #7F77DD);
-      color: white;
-      margin-right: 8px;
-    }
-    .loading-overlay {
-      color: var(--purple2, #7F77DD);
-      font-weight: bold;
-      text-align: center;
-      padding: 1rem;
-    }
-  </style>
-{% endblock %}
-
 {% block content %}
-<div class="test-header">
-  <div class="test-info">
-    <span id="hicheel-ner">{{ hicheel }}</span>
-    <span>{{ angi }}-р анги</span>
-  </div>
-  <div class="timer" id="timer">80:00</div>
-  <div class="progress">
-    <span id="current-q">1</span> / <span id="total-q">...</span>
-  </div>
-</div>
-
-<div class="question-box" id="question-box">
-  <p class="q-number">Асуулт <span id="q-num">1</span> <span id="adaptive-status"></span></p>
-  <p class="q-text" id="q-text">Асуулт ачааллаж байна...</p>
-  <div id="q-image-box" style="margin:1rem 0; display:none;">
-    <img id="q-image" src="" alt="Асуултын зураг"
-         style="max-width:100%; max-height:300px; border-radius:8px; border:1px solid #e5e7eb;">
-  </div>
-  <div class="options" id="options">
+<div class="container mt-5">
+    <div class="card p-4 shadow-sm">
+        <h3 class="text-primary mb-4">📝 Шалгалт ажиллуулах хэсэг</h3>
+        <div class="alert alert-secondary">
+            <strong>Анги:</strong> {{ angi }}-р анги | <strong>Хичээл:</strong> {{ hicheel }}
+        </div>
+        
+        <hr>
+        
+        <div id="quiz-container">
+            <div class="text-center p-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2">Асуултуудыг ачаалж байна, түр хүлээнэ үү...</p>
+            </div>
+        </div>
+        
+        <div class="text-end mt-4">
+            <button onclick="submitQuiz()" class="btn btn-success btn-lg px-5">Тестийг дуусгах</button>
+        </div>
     </div>
 </div>
 
-<div class="test-nav">
-  <button class="btn-secondary" type="button" onclick="window.location.href='/'">← Нүүр хуудас</button>
-  <button class="btn-secondary" id="prev-btn" type="button" onclick="prevQuestion()">← Өмнөх</button>
-  <button class="btn-primary" id="next-btn" type="button" onclick="nextQuestion()">Дараах →</button>
-  <button class="btn-danger" id="finish-btn" type="button" style="display:none" onclick="finishTest()">Дуусгах</button>
-</div>
-{% endblock %}
-
-{% block extra_js %}
 <script>
-  // Flask-аас ирж буй анги болон хичээлийн нэр
-  const HICHEEL = "{{ hicheel }}";
-  const ANGI = "{{ angi }}";
+let userAnswers = [];
 
-  let mainQuestions = [];      // Файлаас ачаалагдсан үндсэн асуултууд
-  let currentIndex = 0;        // Одоо байгаа үндсэн асуултын индекс
-  let userAnswers = {};        // Сурагчийн өгсөн хариултууд {индекс: "сонголт"}
-  let isAdaptiveMode = false;  // Яг одоо Gemini-ийн адаптив асуулт дээр байгаа эсэх
-  let currentAdaptiveData = null; // Gemini-ээс ирсэн асуултын дата
-  
-  // Шалгалтын хугацаа (80 минут)
-  let timeLeft = 80 * 60;
-  const timerElement = document.getElementById("timer");
-  
-  const timerInterval = setInterval(() => {
-    if (timeLeft <= 0) {
-      clearInterval(timerInterval);
-      alert("Шалгалтын хугацаа дууслаа!");
-      finishTest();
-    } else {
-      timeLeft--;
-      const min = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-      const sec = (timeLeft % 60).toString().padStart(2, '0');
-      timerElement.textContent = `${min}:${sec}`;
-    }
-  }, 1000);
-
-  // Хуудас ачаалагдахад асуултуудаа API-аас татаж авна
-  window.addEventListener("DOMContentLoaded", () => {
-    fetch(`/api/questions?angi=${ANGI}&hicheel=${encodeURIComponent(HICHEEL)}`)
-      .then(res => res.json())
-      .then(data => {
-        // Хэрэв таны API 'questions' эсвэл 'asuultuud' нэрээр буцаадаг бол тохируулна уу
-        mainQuestions = data.questions || data.asuultuud || [];
-        
-        if (mainQuestions.length === 0) {
-          document.getElementById("q-text").textContent = "Энэ хичээл дээр асуулт олдсонгүй.";
-          return;
+function loadQuestions() {
+    fetch('/api/get-questions?angi={{ angi }}&hicheel={{ hicheel }}')
+    .then(res => res.json())
+    .then(data => {
+        if (!data.questions || data.questions.length === 0) {
+            document.getElementById('quiz-container').innerHTML = '<div class="alert alert-warning">Энэ хичээлээр одоогоор асуулт бүртгэгдээгүй байна.</div>';
+            return;
         }
         
-        document.getElementById("total-q").textContent = mainQuestions.length;
-        renderQuestion();
-      })
-      .catch(err => {
-        console.error("Асуулт татахад алдаа гарлаа:", err);
-        document.getElementById("q-text").textContent = "Асуултуудыг ачаалахад алдаа гарлаа.";
-      });
-  });
+        let html = '';
+        data.questions.forEach((q, index) => {
+            html += `
+            <div class="card mb-4 p-3 border-start border-primary border-3 shadow-sm">
+                <h5 class="fw-bold">${index + 1}. ${q.asuult}</h5>
+                <span class="badge bg-light text-dark mb-3 align-self-start">Сэдэв: ${q.sedew}</span>
+                <div class="mt-2">`;
+            
+            // Санамсаргүй холигдсон хариултуудыг зурах
+            q.choices.forEach((choice, cIndex) => {
+                html += `
+                <div class="form-check my-2 p-2 rounded bg-light-hover" style="padding-left: 2.5rem;">
+                    <input class="form-check-input" type="radio" name="q_${q.id}" id="q_${q.id}_${cIndex}" value="${choice.text}" onchange="saveAnswer(${q.id}, '${choice.text.replace(/'/g, "\\'")}')">
+                    <label class="form-check-label w-100" for="q_${q.id}_${cIndex}">
+                        ${choice.text}
+                    </label>
+                </div>`;
+            });
+            
+            html += `</div></div>`;
+        });
+        document.getElementById('quiz-container').innerHTML = html;
+    })
+    .catch(err => {
+        document.getElementById('quiz-container').innerHTML = '<div class="alert alert-danger">Асуултуудыг татахад алдаа гарлаа.</div>';
+    });
+}
 
-  // Асуултыг дэлгэцэнд зурах функц
-  function renderQuestion() {
-    isAdaptiveMode = false;
-    currentAdaptiveData = null;
-    
-    const qBox = document.getElementById("question-box");
-    qBox.classList.remove("gemini-adaptive-box");
-    document.getElementById("adaptive-status").innerHTML = "";
-
-    if (mainQuestions.length === 0) return;
-    
-    const q = mainQuestions[currentIndex];
-    
-    // Жагсаалтын дугаар болон текстийг шинэчлэх
-    document.getElementById("q-num").textContent = currentIndex + 1;
-    document.getElementById("current-q").textContent = currentIndex + 1;
-    document.getElementById("q-text").textContent = q.asuult || q.Асуулт;
-    
-    // Хэрэв зурагтай асуулт бол зургийг харуулах
-    const imgBox = document.getElementById("q-image-box");
-    const imgTag = document.getElementById("q-image");
-    if (q.link && q.link.trim() !== "" && q.link !== "None") {
-      imgTag.src = q.link;
-      imgBox.style.display = "block";
+function saveAnswer(qId, text) {
+    let existing = userAnswers.find(a => a.question_id === qId);
+    if(existing) {
+        existing.selected_text = text;
     } else {
-      imgBox.style.display = "none";
+        userAnswers.push({ question_id: qId, selected_text: text });
     }
-    
-    // Сонголтуудыг бэлдэх (Үндсэн баазын баганын нэршилд тохируулах)
-    // Зөв хариулт болон Буруу хариултуудыг цуглуулах
-    const correctAns = q.zow_hariult || q['зөв хариулт'];
-    const w1 = q.a_hariu || q['Буруу хариулт 1'];
-    const w2 = q.b_hariu || q['Буруу хариулт 2'];
-    const w3 = q.v_hariu || q['Буруу хариулт 3'] || q['Буруу хариулт 3.'];
+}
 
-    const options = [correctAns, w1, w2, w3].filter(o => o !== undefined && o !== null && o !== "");
-    
-    // Сонголтуудыг харуулах
-    displayOptions(options, correctAns);
-    updateNavButtons();
-  }
-
-  // Сонголтуудыг дэлгэцэнд товчлуур болгож зурах
-  function displayOptions(optionsArray, correctValue) {
-    const optionsContainer = document.getElementById("options");
-    optionsContainer.innerHTML = "";
-    
-    optionsArray.forEach(opt => {
-      const btn = document.createElement("button");
-      btn.className = "option-btn";
-      btn.style.width = "100%";
-      btn.style.margin = "8px 0";
-      btn.style.padding = "12px";
-      btn.style.textAlign = "left";
-      btn.style.cursor = "pointer";
-      btn.style.borderRadius = "8px";
-      btn.style.border = "1px solid var(--border, #e2e8f0)";
-      btn.style.background = "var(--surface, #ffffff)";
-      btn.textContent = opt;
-      
-      // Хэрэв сурагч өмнө нь хариулсан бол идэвхжүүлэх
-      if (!isAdaptiveMode && userAnswers[currentIndex] === opt) {
-        btn.style.borderColor = "var(--blue2, #378ADD)";
-        btn.style.background = "var(--blue1, #E6F1FB)";
-      }
-      
-      btn.onclick = () => handleAnswerSelection(opt, correctValue, btn);
-      optionsContainer.appendChild(btn);
-    });
-  }
-
-  // Сурагч хариулт сонгох үеийн логик (Адаптив механизм энд ажиллана)
-  function handleAnswerSelection(selectedOpt, correctValue, clickedBtn) {
-    // Хэрэв яг одоо Gemini-ийн адаптив асуулт дээр байгаа бол:
-    if (isAdaptiveMode) {
-      if (selectedOpt === correctValue) {
-        alert("Зөв хариуллаа! Сэдвийг амжилттай бататгалаа. 🎉");
-        isAdaptiveMode = false;
-        nextQuestion();
-      } else {
-        alert("Дахин буруу хариуллаа. ❌ Дараагийн асуулт руу шилжиж байна.");
-        isAdaptiveMode = false;
-        nextQuestion();
-      }
-      return;
+function submitQuiz() {
+    if(userAnswers.length === 0) {
+        if(!confirm("Та нэг ч асуултанд хариулаагүй байна. Шалгалтыг шууд дуусгах уу?")) return;
     }
 
-    // Үндсэн асуултын хариултыг хадгалах
-    userAnswers[currentIndex] = selectedOpt;
-    
-    // Бүх товчлуурын өнгийг цэвэрлэх
-    const buttons = document.querySelectorAll(".options button");
-    buttons.forEach(b => {
-      b.style.borderColor = "#e2e8f0";
-      b.style.background = "#ffffff";
-    });
-    
-    // Сонгосон товчлуурыг идэвхжүүлэх
-    clickedBtn.style.borderColor = "var(--blue2, #378ADD)";
-    clickedBtn.style.background = "var(--blue1, #E6F1FB)";
+    // Илгээж байх үед товчийг идэвхгүй болгох
+    document.getElementById('quiz-container').innerHTML = '<div class="text-center p-5"><h5>Үр дүнг тооцож, Gemini AI асуултуудыг бэлдэж байна...</h5></div>';
 
-    // ШАЛГАЛТ: Хэрэв буруу хариулбал Gemini-г дуудна!
-    if (selectedOpt !== correctValue) {
-      triggerGeminiAdaptive(mainQuestions[currentIndex]);
-    }
-  }
-
-  // Gemini-гээс адаптив асуулт дуудах функц
-  function triggerGeminiAdaptive(questionObject) {
-    const qText = questionObject.asuult || questionObject['Асуулт'];
-    const optionsContainer = document.getElementById("options");
-    
-    // Дэлгэцэнд ачааллаж байгааг харуулах
-    const loader = document.createElement("div");
-    loader.className = "loading-overlay";
-    loader.innerHTML = "❌ Буруу хариуллаа! Gemini танд зориулж ижил сэдвийн бататгал асуулт бэлдэж байна... <br><small>Тун удахгүй ачаална...</small>";
-    optionsContainer.appendChild(loader);
-    
-    fetch('/api/generate-adaptive-question', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        question: qText,
-        hicheel: HICHEEL,
-        angi: ANGI
-      })
+    fetch('/api/submit-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers: userAnswers })
     })
     .then(res => res.json())
     .then(result => {
-      if (result.status === 'success') {
-        isAdaptiveMode = true;
-        currentAdaptiveData = result.data;
-        renderAIQuestion(result.data);
-      } else {
-        console.error("Gemini алдаа:", result.message);
-        // Хэрэв Gemini алдвал дараагийн асуулт руу хэвийн шилжинэ
-      }
+        if(result.status === 'success') {
+            sessionStorage.setItem('test_result', JSON.stringify(result));
+            window.location.href = '/result';
+        }
     })
-    .catch(err => console.error("Сүлжээний алдаа:", err));
-  }
-
-  // Gemini-ийн асуултыг хуудас дээр зурах
-  function renderAIQuestion(aiQ) {
-    const qBox = document.getElementById("question-box");
-    // Адаптив горимд орсныг илтгэх хүрээ, статус нэмэх
-    qBox.classList.add("gemini-adaptive-box");
-    document.getElementById("adaptive-status").innerHTML = `<span class="gemini-badge">Gemini Бататгал</span>`;
-    
-    document.getElementById("q-text").textContent = aiQ.asuult;
-    document.getElementById("q-image-box").style.display = "none"; // AI асуултанд зураг байхгүй
-    
-    // Сонголтуудыг хольж бэлдэх
-    const choices = [aiQ.a_hariu, aiQ.b_hariu, aiQ.v_hariu, aiQ.g_hariu].sort(() => Math.random() - 0.5);
-    
-    // Зөв хариултын текстийг олох (Жишээ нь: 'A' байвал aiQ.a_hariu-г авна)
-    let correctText = aiQ.a_hariu;
-    if(aiQ.zow_hariult === 'B') correctText = aiQ.b_hariu;
-    if(aiQ.zow_hariult === 'V' || aiQ.zow_hariult === 'C') correctText = aiQ.v_hariu;
-    if(aiQ.zow_hariult === 'G' || aiQ.zow_hariult === 'D') correctText = aiQ.g_hariu;
-
-    displayOptions(choices, correctText);
-  }
-
-  // Навигацийн товчлууруудын төлөв өөрчлөх
-  function updateNavButtons() {
-    document.getElementById("prev-btn").disabled = (currentIndex === 0);
-    
-    if (currentIndex === mainQuestions.length - 1) {
-      document.getElementById("next-btn").style.display = "none";
-      document.getElementById("finish-btn").style.style.display = "inline-block";
-    } else {
-      document.getElementById("next-btn").style.display = "inline-block";
-      document.getElementById("finish-btn").style.display = "none";
-    }
-  }
-
-  function nextQuestion() {
-    if (currentIndex < mainQuestions.length - 1) {
-      currentIndex++;
-      renderQuestion();
-    }
-  }
-
-  function prevQuestion() {
-    if (currentIndex > 0) {
-      currentIndex--;
-      renderQuestion();
-    }
-  }
-
-  // Тестийг дуусгаж оноо бодох функц
-  function finishTest() {
-    let score = 0;
-    mainQuestions.forEach((q, index) => {
-      const correctAns = q.zow_hariult || q['зөв хариулт'];
-      if (userAnswers[index] === correctAns) {
-        score++;
-      }
+    .catch(err => {
+        alert("Хариуг илгээхэд алдаа гарлаа. Дахин оролдоно уу.");
+        loadQuestions();
     });
-    
-    // Үр дүнгийн хуудас руу оноог дамжуулж шилжих
-    window.location.href = `/result?onoo=${score}&niit=${mainQuestions.length}`;
-  }
+}
+
+window.onload = loadQuestions;
 </script>
+
+<style>
+.bg-light-hover:hover {
+    background-color: #f0f2f5;
+    cursor: pointer;
+}
+</style>
 {% endblock %}
