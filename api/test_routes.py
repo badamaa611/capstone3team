@@ -1,215 +1,60 @@
 from flask import Blueprint, jsonify, request
-from flask_login import login_required, current_user
-from extensions import db
-from models import Question, TestSession, TestAnswer, WeakTopic
-from google_sheets_api import import_sheet_questions, append_test_result
-import random
-from datetime import datetime
-from sqlalchemy import text
-import os, json
+from flask_login import login_required
+import pandas as pd
+import os
 
-try:
-    import google.generativeai as genai
-except Exception:
-    genai = None
-
-# DB migration — image_url багана нэмэх
-def migrate_db(app):
-    with app.app_context():
-        try:
-            db.session.execute(text("ALTER TABLE questions ADD COLUMN image_url VARCHAR(500)"))
-            db.session.commit()
-            print("✅ image_url багана нэмэгдлээ")
-        except Exception as e:
-            print(f"Migration: {e}")
 test_bp = Blueprint("test", __name__)
 
-@test_bp.route("/test/generate")
-def generate_test():
-    angi    = request.args.get("angi", "12")
-    hicheel = request.args.get("hicheel", "")
-    too     = int(request.args.get("too", 30))
+# Таны CSV файлын зам (Төслийн үндсэн хавтаст байгаа гэж тооцов)
+CSV_FILE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "capstone data - Sheet1.csv")
 
-    # NOTE: Auto-import removed — causes timeouts on Render
-    # Use /init-db endpoint to import manually instead
+@test_bp.route("/questions", methods=["GET"])
+@login_required
+def get_questions():
+    """Фронт талын нэхэж буй /api/questions хаяг энд байна"""
+    # URL-ээс ирж буй параметрийг унших (Жишээ нь: angi=12, hicheel=Англи хэл)
+    angi_param = request.args.get("angi")
+    hicheel_param = request.args.get("hicheel")
 
-    # Blueprint харьцаа: 27% мэдлэг, 53% чадвар, 20% хэрэглээ
-    medleg_too  = round(too * 0.27)
-    chadwar_too = round(too * 0.53)
-    heregel_too = too - medleg_too - chadwar_too
+    if not angi_param or not hicheel_param:
+        return jsonify({"error": "Анги болон хичээлийн мэдээлэл дутуу байна.", "questions": []}), 400
 
-    def get_questions(tuwshin, count):
-        subject = hicheel.strip()
-        q = Question.query.filter(
-            Question.angi == angi,
-            Question.tuwshin == tuwshin,
-            Question.hicheel.ilike(f"%{subject}%")
-        ).all()
-        if len(q) < count:
-            q = Question.query.filter(
-                Question.angi == angi,
-                Question.hicheel.ilike(f"%{subject}%")
-            ).all()
-        if len(q) < count:
-            q = Question.query.filter(Question.angi == angi).all()
-        return random.sample(q, min(count, len(q)))
-
-    asuultuud = (
-        get_questions(1, medleg_too) +
-        get_questions(2, chadwar_too) +
-        get_questions(3, heregel_too)
-    )
-    if not asuultuud:
-        # Хичээл олдохгүй бол анги дээрээс суурь асуултууд авах
-        asuultuud = Question.query.filter(Question.angi == angi).limit(10).all()
-    random.shuffle(asuultuud)
-
-    # Remove duplicate questions (some buckets may overlap)
-    seen_ids = set()
-    unique_qs = []
-    for q in asuultuud:
-        if q.id not in seen_ids:
-            seen_ids.add(q.id)
-            unique_qs.append(q)
-    asuultuud = unique_qs
-
-    # Тестийн сесс үүсгэх (тоо одоо дүнгэслэгдсэн unique асуултуудаар)
-    suragch = current_user.id if getattr(current_user, 'is_authenticated', False) else None
-    session = TestSession(
-        suragch_id=suragch,
-        angi=angi, hicheel=hicheel, too=len(asuultuud)
-    )
-    db.session.add(session)
-    db.session.commit()
-
-    return jsonify({
-        "session_id": session.id,
-        "angi": angi,
-        "hicheel": hicheel,
-        "niit": len(asuultuud),
-        "asuultuud": [q.to_dict() for q in asuultuud]
-    })
-
-@test_bp.route("/test/submit", methods=["POST"])
-def submit_test():
-    data       = request.get_json()
-    session_id = data.get("session_id")
-    answers    = data.get("answers", {})  # {question_id: hariult}
-
-    session = TestSession.query.get(session_id)
-    if not session:
-        return jsonify({"error": "Session олдсонгүй"}), 404
-
-    onoo = 0
-    sul_sedewnuud = {}
-
-    for q_id_str, hariult in answers.items():
-        q = Question.query.get(int(q_id_str))
-        if not q:
-            continue
-        zuw = (hariult == q.zow_hariult)
-        if zuw:
-            onoo += 1
-        else:
-            # Сул сэдэв бүртгэх
-            key = (q.hicheel, q.sedew)
-            sul_sedewnuud[key] = sul_sedewnuud.get(key, 0) + 1
-
-        answer = TestAnswer(
-            session_id=session_id,
-            question_id=q.id,
-            ogson_hariult=hariult,
-            zuw_esehuu=zuw
-        )
-        db.session.add(answer)
-
-    # WeakTopic шинэчлэх (хэрэглэгч нэвтрээгүй бол энэ хэсгийг алгасна)
-    if getattr(current_user, 'is_authenticated', False):
-        for (hicheel, sedew), aldaa in sul_sedewnuud.items():
-            wt = WeakTopic.query.filter_by(
-                suragch_id=current_user.id,
-                hicheel=hicheel, sedew=sedew
-            ).first()
-            if wt:
-                wt.aldaa_too += aldaa
-                wt.updated = datetime.utcnow()
-            else:
-                wt = WeakTopic(
-                    suragch_id=current_user.id,
-                    hicheel=hicheel, sedew=sedew, aldaa_too=aldaa
-                )
-                db.session.add(wt)
-
-    session.niit_onoo  = onoo
-    session.duusah_tsag = datetime.utcnow()
-    db.session.commit()
+    # CSV файл байгаа эсэхийг шалгах
+    if not os.path.exists(CSV_FILE_PATH):
+        return jsonify({"error": f"CSV файл олдсонгүй: {CSV_FILE_PATH}", "questions": []}), 404
 
     try:
-        suragch_ner = current_user.ner if getattr(current_user, 'is_authenticated', False) else 'Guest'
-        append_test_result(suragch_ner, session.angi, session.hicheel, onoo, len(answers))
-    except Exception:
-        # Swallow sheet-write errors (optional: enable logging to file). Keep response flow intact.
-        print("Append to Google Sheet failed")
-    # Optionally generate suggested practice questions for weak topics using Gemini
-    def generate_ai_questions(angi, hicheel, sedew, too=3):
-        api_key = os.getenv("GOOGLE_API_KEY", "")
-        if not genai or not api_key:
-            # Fallback: pull similar questions from the local DB when AI is unavailable
-            try:
-                qs = []
-                if sedew:
-                    qs = Question.query.filter(
-                        Question.hicheel.ilike(f"%{hicheel}%"),
-                        Question.sedew.ilike(f"%{sedew}%")
-                    ).all()
-                else:
-                    qs = Question.query.filter(
-                        Question.hicheel.ilike(f"%{hicheel}%")
-                    ).all()
-                if not qs:
-                    return []
-                # sample up to `too` questions and return their dict representation
-                import random as _random
-                picked = _random.sample(qs, min(too, len(qs)))
-                return [q.to_dict() for q in picked]
-            except Exception:
-                return []
-        try:
-            genai.configure(api_key=api_key)
-            model_name = os.getenv("GOOGLE_GEMINI_MODEL", "models/gemini-1.5-mini")
-            model = genai.GenerativeModel(model_name)
-            prompt = (
-                f"Та Монгол улсын ерөнхий боловсролын {angi}-р ангийн {hicheel} хичээлийн "
-                f"{sedew} сэдвээр {too} олон сонголтот асуулт үүсгэнэ үү.\n\n"
-                "Зөвхөн JSON массив форматаар буцаана уу."
-            )
-            chat = genai.ChatSession(model)
-            response = chat.send_message(prompt)
-            text = getattr(response, "text", None) or getattr(response, "content", None) or ""
-            return json.loads(text)
-        except Exception:
-            return []
+        # CSV файлыг унших
+        df = pd.read_csv(CSV_FILE_PATH)
+        
+        # Баганын нэрсийг цэвэрлэх (зайг устгах)
+        df.columns = df.columns.str.strip()
+        
+        # Анги болон Хичээлээр нь шүүх
+        # Тэмдэгт болон Тоон төрлийг зөрөхөөс сэргийлж string болгож харьцуулна
+        filtered_df = df[
+            (df['Анги'].astype(str) == str(angi_param)) & 
+            (df['Хичээл'].astype(str).str.strip() == str(hicheel_param).strip())
+        ]
+        
+        questions_list = []
+        for _, row in filtered_df.iterrows():
+            # Найдвартай байх үүднээс аль ч нэршлээр байсан уншихаар тохируулав
+            questions_list.append({
+                "asuult": str(row.get("Асуулт", row.get("asuult", ""))),
+                "link": str(row.get("link", row.get("Линк", ""))) if pd.notna(row.get("link")) else "",
+                "zow_hariult": str(row.get("зөв хариулт", row.get("zow_hariult", ""))),
+                "a_hariu": str(row.get("Буруу хариулт 1", row.get("a_hariu", ""))),
+                "b_hariu": str(row.get("Буруу хариулт 2", row.get("b_hariu", ""))),
+                "v_hariu": str(row.get("Буруу хариулт 3", row.get("v_hariu", "")))
+            })
+            
+        # Сонгосон анги, хичээлд асуулт олдоогүй бол
+        if not questions_list:
+            return jsonify({"message": "Тохирох асуулт олдсонгүй.", "questions": []}), 200
 
-    sul_list = [
-        {"hicheel": h, "sedew": s, "aldaa": a}
-        for (h, s), a in sul_sedewnuud.items()
-    ]
+        # Амжилттай бол асуултуудыг буцаана
+        return jsonify({"questions": questions_list}), 200
 
-    suggested = {}
-    for (h, s), a in sul_sedewnuud.items():
-        # generate up to 3 practice questions per weak topic (best-effort)
-        suggested_key = f"{h}||{s}"
-        suggested[suggested_key] = generate_ai_questions(session.angi, h, s, too=3)
-
-    # If no weak topics found, provide a small set of practice questions for the subject
-    if not suggested:
-        fallback_list = generate_ai_questions(session.angi, session.hicheel, "", too=3)
-        if fallback_list:
-            suggested[f"{session.hicheel}||general"] = fallback_list
-    return jsonify({
-        "onoo": onoo,
-        "niit": len(answers),
-        "huvi": round(onoo / len(answers) * 100) if answers else 0,
-        "sul_sedewnuud": sul_list,
-        "suggested_questions": suggested
-    })
+    except Exception as e:
+        return jsonify({"error": f"Серверийн алдаа: {str(e)}", "questions": []}), 500
