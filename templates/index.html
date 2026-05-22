@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SUPER BRAIN - Цогц Систем</title>
+  <title>SUPER BRAIN - Цогц систем</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -124,7 +124,7 @@
       <div class="logo-box">SB</div>
       <div>
         <span class="logo-name">Super Brain</span>
-        <span class="logo-tag">Цогц Систем · AI Дэмжлэг</span>
+        <span class="logo-tag">Шалгалтын систем · AI дэмжлэг</span>
       </div>
     </a>
     <div class="nr">
@@ -149,17 +149,17 @@
     {% endwith %}
 
     <div class="hero">
-      <div class="htag"><i class="ti ti-sparkles"></i> SUPER BRAIN Адаптив Технологи</div>
-      <h1 class="hh">Мэдлэгээ <span class="gr">Шалгаж</span>,<br>Ирээдүйгээ Цогцлон Бүтээ</h1>
+      <div class="htag"><i class="ti ti-sparkles"></i> SUPER BRAIN шалгалтын цогц платформ</div>
+      <h1 class="hh">Мэдлэгээ <span class="gr">шалгаж</span>,<br>Ирээдүйгээ цогцлон бүтээ</h1>
 
       <div class="ai-search-wrap">
-        <div class="ai-search-box">
+        <form action="/ai-search" method="POST" class="ai-search-box">
           <div class="ai-input-row">
             <i class="ti ti-sparkles ai-icon" aria-hidden="true"></i>
-            <input class="ai-input" id="aiInput" placeholder="Хичээл эсвэл сэдэв хайх... жш: фотосинтез, kvadrat tегшитгэл" />
-            <button class="ai-send">↑</button>
+            <input class="ai-input" name="prompt" id="aiInput" required placeholder="Мэргэжил, хичээлийн сэдэв, хэлний дүрэм, томьёо асуух..." />
+            <button type="submit" class="ai-send">↑</button>
           </div>
-        </div>
+        </form>
       </div>
 
       {% if current_user.is_authenticated %}
@@ -191,16 +191,7 @@
       </div>
     </div>
 
-    <hr class="div">
-    
-    <div class="fg">
-      <div class="fc"><div class="fi"><i class="ti ti-checklist" aria-hidden="true"></i></div><div><p class="ft">Blueprint стандарт тест</p><p class="fd">Мэдлэг 27% · Чадвар 53% · Хэрэглээ 20% олон улсын үнэлгээний аргачлал.</p></div></div>
-      <div class="fc"><div class="fi"><i class="ti ti-brain" aria-hidden="true"></i></div><div><p class="ft">AI Адаптив дасгал</p><p class="fd">Алдаатай сэдвийг шууд таньж, Gemini хиймэл оюунаар бататгах дасгал үүсгэнэ.</p></div></div>
-    </div>
-  </div>
-
   <script>
-    // Бөмбөлөг үүсгэх автомат скрипт
     function createBubbles() {
       const container = document.getElementById('bubble-container');
       const bubbleCount = 15;
