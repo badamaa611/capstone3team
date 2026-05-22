@@ -2,14 +2,14 @@
 import google.generativeai as genai
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin
+from flask_login import LoginManager, UserMixin, current_user
 from flask_bcrypt import Bcrypt
 
 # 1. Аппликейшн үүсгэх болон тохиргоо
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'super-brain-secret-key-2026'
 
-# Gemini API тохиргоо (Render Environment-ээс уншина)
+# Gemini API тохиргоо
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 
@@ -20,7 +20,8 @@ instance_path = os.path.join(basedir, 'instance')
 if not os.path.exists(instance_path):
     os.makedirs(instance_path, exist_ok=True)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(instance_path, 'user.db')
+db_path = os.path.join(instance_path, 'user.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # 2. Сангуудыг аппликейшнтэй холбох
@@ -48,14 +49,53 @@ def load_user(user_id):
 from auth import auth as auth_blueprint
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-# Өгөгдлийн санг шалгаж, зөвхөн байхгүй бол үүсгэх
+# 🔥 ХАМГИЙН ЧУХАЛ: Өгөгдлийн сан устдаг алдааг засав (Зөвхөн файл байхгүй бол үүсгэнэ)
 with app.app_context():
-    db.create_all()
+    if not os.path.exists(db_path):
+        db.create_all()
 
 # 5. Үндсэн хуудаснууд
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template('index.html')
+    ai_response = None
+    user_prompt = None
+    
+    # Сурагчийн дүнгийн задаргааны үзүүлэн дата (Эдгээрийг дараа нь өгөгдлийн сантай холбож болно)
+    student_stats = {
+        'total_score': '84%',
+        'total_tests': 12,
+        'strong_topics': ['Математик (Процент, Тэгшитгэл)', 'Англи хэл (Үйл үг)'],
+        'weak_topics': ['Физик (Механик хөдөлгөөн)', 'Монгол хэл (Хэлц үг)'],
+        'details': [
+            {'subject': 'Математик', 'score': 92, 'status': 'Сайн', 'color': 'var(--green2)'},
+            {'subject': 'Англи хэл', 'score': 88, 'status': 'Сайн', 'color': 'var(--green2)'},
+            {'subject': 'Физик', 'score': 65, 'status': 'Сул', 'color': 'var(--purple2)'},
+            {'subject': 'Монгол хэл', 'score': 71, 'status': 'Дундаж', 'color': 'var(--blue2)'}
+        ]
+    }
+    
+    if request.method == 'POST' and 'prompt' in request.form:
+        user_prompt = request.form.get('prompt')
+        try:
+            model = genai.GenerativeModel(model_name="models/gemini-1.5-flash-latest")
+            system_instruction = (
+                "Чи бол Super Brain системийн ухаалаг AI туслах багш байна. "
+                "Сурагчид чамаас мэргэжил сонголт, шалгалтын сэдэв, монгол/англи хэлний дүрэм, "
+                "математик/физикийн томьёо асууна. Чи хариултыг маш тодорхой, ойлгомжтой, "
+                "сурагчдад урам зориг өгөхүйцээр, цэгцтэй (bullet points ашиглан) монгол хэлээр хариулна уу."
+            )
+            full_prompt = f"{system_instruction}\n\nАсуулт: {user_prompt}"
+            response = model.generate_content(full_prompt)
+            ai_response = response.text
+        except Exception as e:
+            try:
+                model = genai.GenerativeModel("gemini-pro")
+                response = model.generate_content(f"Хариултыг монголоор цэгцтэй өгнө үү. Асуулт: {user_prompt}")
+                ai_response = response.text
+            except Exception as inner_e:
+                ai_response = f"Уучлаарай, AI системтэй холбогдоход алдаа гарлаа: {str(inner_e)}"
+
+    return render_template('index.html', prompt=user_prompt, ai_response=ai_response, stats=student_stats)
 
 @app.route('/tests')
 def tests():
@@ -64,35 +104,6 @@ def tests():
 @app.route('/ai-chat')
 def ai_chat():
     return "<h3>AI Зөвлөх систем (Удахгүй нэмэгдэнэ)</h3><a href='/'>Нүүр хуудас руу буцах</a>"
-
-# 6. Хиймэл оюуны хайлтын зам
-@app.route('/ai-search', methods=['POST'])
-def ai_search():
-    user_prompt = request.form.get('prompt')
-    if not user_prompt:
-        return redirect(url_for('index'))
-        
-    try:
-        system_instruction = (
-            "Чи бол Super Brain системийн ухаалаг AI туслах багш байна. "
-            "Сурагчид чамаас мэргэжил сонголт, шалгалтын сэдэв, монгол/англи хэлний дүрэм, "
-            "дотоод болон олон улсын шалгалтын удирдамж, математик/физикийн томьёо асууна. "
-            "Чи хариултыг маш тодорхой, ойлгомжтой, сурагчдад урам зориг өгөхүйцээр, "
-            "цэгцтэй (bullet points ашиглан) монгол хэлээр хариулна уу."
-        )
-        
-        model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
-            system_instruction=system_instruction
-        )
-        
-        response = model.generate_content(user_prompt)
-        ai_response = response.text
-        
-    except Exception as e:
-        ai_response = f"Уучлаарай, AI системтэй холбогдоход алдаа гарлаа: {str(e)}"
-        
-    return render_template('ai_result.html', prompt=user_prompt, response=ai_response)
 
 if __name__ == '__main__':
     app.run(debug=True)
