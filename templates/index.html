@@ -121,7 +121,7 @@
       <span style="font-size:13px;color:var(--text2);font-weight:600;margin-left:8px;">{{ current_user.ner }}</span>
       <a href="{{ url_for('logout') }}" class="nbtn" style="margin-left:8px;">Гарах</a>
     {% else %}
-      <a href="{{ url_for('login') }}" class="nbtn">Нэвтрэх</a>
+      <a href="{{ url_for('auth.login') }}" class="nbtn">Нэвтрэх</a>
     {% endif %}
   </div>
 </nav>
