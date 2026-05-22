@@ -2,31 +2,26 @@
 from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin
-from flask_bcrypt import Bcrypt  # Энд нэмэв
+from flask_bcrypt import Bcrypt
 
-# 1. Аппликейшн үүсгэх болон тохиргоо
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'super-brain-secret-key-2026'
 
-# Өгөгдлийн сангийн замыг тохируулах
 basedir = os.path.abspath(os.path.dirname(__file__))
 instance_path = os.path.join(basedir, 'instance')
-
 if not os.path.exists(instance_path):
     os.makedirs(instance_path, exist_ok=True)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(instance_path, 'user.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# 2. Сангуудыг аппликейшнтэй холбох
 db = SQLAlchemy(app)
-bcrypt = Bcrypt(app)  # Bcrypt-ийг апп-тай зөв холбож өгөв!
+bcrypt = Bcrypt(app)
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'auth.login'
 login_manager.login_message_category = 'info'
 
-# 3. Өгөгдлийн сангийн Модел
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     ner = db.Column(db.String(150), nullable=False)   
@@ -39,27 +34,32 @@ class User(db.Model, UserMixin):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# 4. Blueprint-ийг импортлож бүртгэх
 from auth import auth as auth_blueprint
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-# Өгөгдлийн санг шинээр цэвэрхэн үүсгэх
 with app.app_context():
-    db.drop_all()   # Одоо байгаа гацсан бүх хүснэгтийг устгана
-    db.create_all()  # Шинэ цэвэр хүснэгт үүсгэнэ
+    db.create_all()
 
-# 5. Үндсэн хуудаснууд
+# --- ХУУДАСНУУДЫН ХОЛБООС ---
 @app.route('/')
 def index():
     return render_template('index.html')
 
 @app.route('/tests')
 def tests():
-    return "<h3>Шалгалтын бэлтгэл тестүүд (Удахгүй нэмэгдэнэ)</h3><a href='/'>Нүүр хуудас руу буцах</a>"
+    # Хэрэв танд tests.html байгаа бол render_template('tests.html') болгоорой
+    try:
+        return render_template('tests.html')
+    except:
+        return "<div style='text-align:center; margin-top:50px;'><h3>Шалгалтын бэлтгэл тестүүд (Түр хуудас)</h3><a href='/'>Буцах</a></div>"
 
 @app.route('/ai-chat')
 def ai_chat():
-    return "<h3>AI Зөвлөх систем (Удахгүй нэмэгдэнэ)</h3><a href='/'>Нүүр хуудас руу буцах</a>"
+    # Хэрэв танд ai-chat.html байгаа бол render_template('ai-chat.html') болгоорой
+    try:
+        return render_template('ai-chat.html')
+    except:
+        return "<div style='text-align:center; margin-top:50px;'><h3>AI Зөвлөх систем (Түр хуудас)</h3><a href='/'>Буцах</a></div>"
 
 if __name__ == '__main__':
     app.run(debug=True)
