@@ -1,36 +1,23 @@
-{% extends "base.html" %}
-{% block title %}Бүртгүүлэх - Super Brain{% endblock %}
-
-{% block content %}
-<div class="row justify-content-center mt-5">
-    <div class="col-md-5">
-        <div class="auth-card p-4 p-sm-5">
-            <h2 class="text-center mb-4"><i class="fa-solid fa-user-plus text-primary me-2"></i>Бүртгүүлэх</h2>
-            
-           <form method="POST" action="{{ url_for('register') }}">
-    <div class="mb-3">
-        <label class="form-label">Нэвтрэх нэр</label>
-        <input type="text" name="username" class="form-control" required placeholder="Нэвтрэх нэрээ оруулна уу">
-    </div>
-    
-    <div class="mb-3">
-        <label class="form-label">Таны нэр</label>
-        <input type="text" name="ner" class="form-control" required placeholder="Овог нэрээ оруулна уу">
-    </div>
-    
-    <div class="mb-3">
-        <label class="form-label">Нууц үг</label>
-        <input type="password" name="password" class="form-control" required placeholder="Нууц үг зохионо уу">
-    </div>
-    
-    <button type="submit" class="btn btn-primary w-100 py-2.5">Бүртгүүлэх</button>
-</form>
-
-            <div class="text-center mt-3">
-                <span class="text-muted">Бүртгэлтэй юу?</span> 
-                <a href="{{ url_for('login') }}" class="text-decoration-none fw-bold ms-1">Нэвтрэх</a>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <title>Бүртгүүлэх - Super Brain</title>
+  <style>
+    body { background: #f8fafc; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
+    .card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+    input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
+    button { width: 100%; padding: 12px; background: #7F77DD; color: white; border: none; border-radius: 8px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Бүртгүүлэх</h2>
+    <form action="{{ url_for('register') }}" method="POST">
+      <input type="text" name="username" placeholder="Шинэ нэр" required>
+      <input type="password" name="password" placeholder="Нууц үг" required>
+      <button type="submit">Бүртгүүлэх</button>
+    </form>
+  </div>
+</body>
+</html>

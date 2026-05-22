@@ -1,21 +1,24 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="row justify-content-center mt-5">
-    <div class="col-md-5">
-        <div class="auth-card p-4">
-            <h2 class="text-center">Нэвтрэх</h2>
-            <form method="POST" action="{{ url_for('login') }}">
-                <div class="mb-3">
-                    <label>Нэвтрэх нэр</label>
-                    <input type="text" name="username" class="form-control" required>
-                </div>
-                <div class="mb-3">
-                    <label>Нууц үг</label>
-                    <input type="password" name="password" class="form-control" required>
-                </div>
-                <button type="submit" class="btn btn-primary w-100">Нэвтрэх</button>
-            </form>
-        </div>
-    </div>
-</div>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <title>Нэвтрэх - Super Brain</title>
+  <style>
+    body { background: #f8fafc; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
+    .card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+    input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
+    button { width: 100%; padding: 12px; background: #378ADD; color: white; border: none; border-radius: 8px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Нэвтрэх</h2>
+    <form action="{{ url_for('login') }}" method="POST">
+      <input type="text" name="username" placeholder="Хэрэглэгчийн нэр" required>
+      <input type="password" name="password" placeholder="Нууц үг" required>
+      <button type="submit">Орох</button>
+    </form>
+    <p>Бүртгэлгүй бол <a href="{{ url_for('register') }}">Энд дарж бүртгүүлнэ үү</a></p>
+  </div>
+</body>
+</html>
