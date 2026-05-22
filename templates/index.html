@@ -1,81 +1,42 @@
 <!DOCTYPE html>
 <html lang="mn">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SUPER BRAIN - Нэвтрэх</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <style>
-    /* ... Өмнөх бүх CSS хэвээрээ ... */
-    :root{--blue2:#378ADD; --blue3:#0C447C; --border:#e2e8f0; --surface:#ffffff;}
-    
-    /* Шинээр нэмэгдсэн Навигацийн хэсэг */
-    .nav{display:flex;justify-content:space-between;align-items:center;padding:15px 30px;border-bottom:1px solid #e2e8f0;background:rgba(255,255,255,0.95);position:fixed;top:0;left:0;right:0;z-index:1000;}
-    .nav-auth{display:flex;gap:12px;}
-    .btn-login{padding:8px 16px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;color:var(--blue2);border:1px solid var(--blue2);}
-    .btn-reg{padding:8px 16px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;background:var(--blue2);color:#fff;}
-    
-    /* ... Бусад CSS хэвээрээ ... */
+    /* Өнгө болон товчлуурын загвар хэвээр */
+    .nbtn{padding:8px 16px;border-radius:10px;background:linear-gradient(135deg,#378ADD,#7F77DD);color:#fff;text-decoration:none;font-weight:600;}
+    .dash-card{background:#fff;border:1px solid #e2e8f0;padding:20px;border-radius:16px;margin-bottom:10px;}
   </style>
 </head>
 <body>
-
   <nav class="nav">
-    <a class="logo-a" href="/">
-      <div class="logo-box">SB</div>
-      <div><span class="logo-name">Super Brain</span></div>
-    </a>
-    
-    <div class="nav-auth">
-      {% if current_user.is_authenticated %}
-        <span style="align-self:center; margin-right:10px;">Сайн уу, {{ current_user.ner }}</span>
-        <a href="{{ url_for('auth.logout') }}" class="btn-login">Гарах</a>
-      {% else %}
-        <a href="{{ url_for('auth.login') }}" class="btn-login">Нэвтрэх</a>
-        <a href="{{ url_for('auth.register') }}" class="btn-reg">Бүртгүүлэх</a>
-      {% endif %}
-    </div>
+    <a href="/" class="logo-name">Super Brain</a>
+    {% if current_user.is_authenticated %}
+      <a href="/logout" class="nbtn">Гарах</a>
+    {% endif %}
   </nav>
 
-  <div class="container" style="padding-top: 100px;">
-    <div class="hero">
-      <h1 class="hh">Мэдлэгээ <span class="gr">Шалгаж</span>,<br>Ирээдүйгээ Бүтээ</h1>
+  <div class="container">
+    {% if current_user.is_authenticated %}
+      <div class="ai-search-wrap">
+        {% for chat in chats %}
+          <div class="chat-message">{{ chat.prompt }} - {{ chat.response }}</div>
+        {% endfor %}
+      </div>
       
-      <div class="grade-row">
-        <div class="gc g5" onclick="toggleDropdown('5')">
-          <span class="gn" style="color:#378ADD;">5</span>
-          <span class="gl">Дугаар анги</span>
-        </div>
-        <div class="gc g9" onclick="toggleDropdown('9')">
-          <span class="gn" style="color:#1D9E75;">9</span>
-          <span class="gl">Дугаар анги</span>
-        </div>
-        <div class="gc g12" onclick="toggleDropdown('12')">
-          <span class="gn" style="color:#7F77DD;">12</span>
-          <span class="gl">Дугаар анги</span>
-        </div>
+      {% for res in results %}
+        <div class="dash-card">{{ res.subject }}: {{ res.score }}%</div>
+      {% endfor %}
 
-        {% for grade, subjects in grade_subjects.items() %}
-          <div class="subject-dropdown" id="drop-{{ grade }}">
-            <div class="subject-grid">
-              {% for sub in subjects %}
-                <a href="/take-test/{{ grade }}/{{ sub }}" class="subject-btn">
-                  <i class="ti ti-book"></i> {{ sub }}
-                </a>
-              {% endfor %}
-            </div>
+      <div class="grade-row">
+        {% for grade, subs in grade_subjects.items() %}
+          <div class="gc" onclick="toggleDropdown('{{grade}}')">
+            <span class="gn">{{grade}}</span>
           </div>
         {% endfor %}
       </div>
-    </div>
+    {% else %}
+      <a href="/login" class="nbtn">Нэвтрэх</a>
+    {% endif %}
   </div>
-
-  <script>
-    function toggleDropdown(gradeId) {
-      document.querySelectorAll('.subject-dropdown').forEach(el => {
-        el.style.display = (el.id === 'drop-' + gradeId && el.style.display !== 'block') ? 'block' : 'none';
-      });
-    }
-  </script>
 </body>
 </html>
