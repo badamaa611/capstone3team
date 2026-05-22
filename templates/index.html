@@ -1,51 +1,63 @@
-{% extends "base.html" %}
-{% block content %}
-
-<div class="hero">
-    <h1 class="hh">Мэдлэгээ <span class="gr">Шалгаж</span>,<br>Ирээдүйгээ Бүтээ</h1>
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <title>SUPER BRAIN - Нүүр хуудас</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <style>
+    :root { --bg:#ffffff; --blue2:#378ADD; --purple2:#7F77DD; --text:#0f172a; --card-bg:#ffffff; }
+    body { background: var(--bg); font-family: sans-serif; padding-top: 76px; 
+           background-image: radial-gradient(at 0% 0%, rgba(55, 138, 221, 0.08) 0px, transparent 60%),
+                             radial-gradient(at 100% 100%, rgba(127, 119, 221, 0.08) 0px, transparent 60%);
+           background-attachment: fixed; }
+    .nav { position: fixed; top: 0; width: 100%; padding: 15px 30px; display: flex; justify-content: space-between; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); z-index: 100; border-bottom: 1px solid #e2e8f0; }
+    .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+    .hero { text-align: center; }
+    .hh { font-size: 3rem; font-weight: 800; margin-bottom: 2rem; }
+    .gr { background: linear-gradient(135deg, var(--blue2), var(--purple2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     
-    <div class="ai-search-wrap">
-        <div class="ai-search-box">
-            <div class="chat-stream">
-                {% for chat in chats %}
-                    <div class="msg-user"><b>Би:</b> {{ chat.prompt }}</div>
-                    <div class="msg-ai"><b>AI:</b> {{ chat.response }}</div>
-                {% endfor %}
-            </div>
-            <form action="/" method="POST">
-                <div class="ai-input-row">
-                    <input class="ai-input" name="prompt" required placeholder="Асуултаа бичнэ үү...">
-                    <button type="submit" class="ai-send">↑</button>
-                </div>
-            </form>
-        </div>
-    </div>
+    .ai-search-box { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+    .ai-input-row { display: flex; gap: 10px; }
+    .ai-input { flex: 1; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; }
+    .ai-send { padding: 10px 20px; background: var(--blue2); color: white; border: none; border-radius: 10px; cursor: pointer; }
+    
+    .chat-stream { text-align: left; margin-bottom: 20px; }
+    .msg-user { background: #f1f5f9; padding: 10px; border-radius: 8px; margin-bottom: 5px; }
+    .msg-ai { background: #e0f2fe; padding: 10px; border-radius: 8px; margin-bottom: 15px; }
+    
+    .welcome-card { background: white; padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0; margin-top: 20px; }
+  </style>
+</head>
+<body>
 
+<nav class="nav">
+  <div class="logo"><b>SUPER BRAIN</b></div>
+  <div>
     {% if current_user.is_authenticated %}
-        <div class="dashboard-section">
-            <h3 class="dash-title">Миний үр дүнгүүд</h3>
-            <div class="dash-grid">
-                {% for res in results %}
-                    <div class="dash-card">
-                        <b>{{ res.subject }}</b>: {{ res.score }}% ({{ res.grade }}-р анги)
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <div class="grade-row">
-            {% for grade, subjects in grade_subjects.items() %}
-                <div class="gc g{{grade}}" onclick="toggleDropdown('{{grade}}')">
-                    <span class="gn">{{grade}}</span>
-                    <span class="gl">Анги</span>
-                </div>
-            {% endfor %}
-        </div>
+      <span>Сайн уу, {{ current_user.ner }}</span>
+      <a href="{{ url_for('logout') }}">Гарах</a>
     {% else %}
-        <div class="text-center mt-5">
-            <p>Тестээ үргэлжлүүлж, үр дүнгээ хадгалахын тулд <a href="{{ url_for('login') }}">Нэвтэрнэ үү</a>.</p>
-        </div>
+      <a href="{{ url_for('login') }}">Нэвтрэх</a>
+      <a href="{{ url_for('register') }}">Бүртгүүлэх</a>
     {% endif %}
-</div>
+  </div>
+</nav>
 
-{% endblock %}
+<div class="container">
+  <div class="hero">
+    <h1 class="hh">Мэдлэгээ <span class="gr">Шалгаж</span>,<br>Ирээдүйгээ Бүтээ</h1>
+
+    <div class="ai-search-box">
+      <div class="chat-stream">
+        {% for chat in chats %}
+            <div class="msg-user"><b>Би:</b> {{ chat.prompt }}</div>
+            <div class="msg-ai"><b>AI:</b> {{ chat.response }}</div>
+        {% endfor %}
+      </div>
+      <form action="/" method="POST">
+        <div class="ai-input-row">
+          <input class="ai-input" name="prompt" required placeholder="Асуултаа бичнэ үү...">
+          <button type="submit" class="ai-send">↑</button>
+        </div>
+      </form>
+    </div>
