@@ -7,9 +7,15 @@ from flask_login import LoginManager, UserMixin
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'super-brain-secret-key-2026'
 
-# Өгөгдлийн сангийн замыг instance/user.db хавтас руу яг таг зааж өгөх
+# Өгөгдлийн сангийн замыг тохируулах
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'instance', 'user.db')
+instance_path = os.path.join(basedir, 'instance')
+
+# --- СҮҮЛИЙН НЭМЭЛТ: Render дээр 'instance' хавтас байхгүй бол урьдчилж үүсгэх ---
+if not os.path.exists(instance_path):
+    os.makedirs(instance_path, exist_ok=True)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(instance_path, 'user.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # 2. Өгөгдлийн сан болон Логин менежер бэлдэх
@@ -18,10 +24,10 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'auth.login'
 login_manager.login_message_category = 'info'
 
-# 3. Өгөгдлийн сангийн Модел (Таны HTML дээрх .ner-тэй ижил)
+# 3. Өгөгдлийн сангийн Модел
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
-    ner = db.Column(db.String(150), nullable=False)   # Хэрэв username байсан бол 'ner' болгов
+    ner = db.Column(db.String(150), nullable=False)   # Хэрэглэгчийн нэр (HTML-ийн .ner талбартай ижил)
     email = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(256), nullable=False)
     role = db.Column(db.String(50), nullable=False, default='suragch') # 'bagsh' эсвэл 'suragch'
@@ -38,7 +44,6 @@ app.register_blueprint(auth_blueprint, url_prefix='/auth')
 # 5. Үндсэн хуудаснуудын замууд (Routes)
 @app.route('/')
 def index():
-    # Таны илгээсэн Tabler дүрсүүдтэй гоё шинэ нүүр хуудас
     return render_template('index.html')
 
 @app.route('/tests')
@@ -47,17 +52,10 @@ def tests():
 
 @app.route('/ai-chat')
 def ai_chat():
-    return "<h3>AI Зөвлөх систем (Удахгүй нэмэгдэнэ)</h3><a href='/'>Нүүр хуудас руу буцах</a>"
+    return "<h3>AI Зөвлөх системууд (Удахгүй нэмэгдэнэ)</h3><a href='/'>Нүүр хуудас руу буцах</a>"
 
-# 6. Аппликейшнийг эхлүүлэх
+# 6. Аппликейшнийг эхлүүлэх (Давхардлыг арилгаж цэгцлэв)
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all()  # Өгөгдлийн санг зөв багануудтай шинээр үүсгэх
-    app.run(debug=True)
-    # app.py-ийн хамгийн доор байх ёстой код:
-if __name__ == '__main__':
-    with app.app_context():
-        # instance хавтас байхгүй бол автоматаар үүсгэх ложик
-        os.makedirs(os.path.dirname(app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', '')), exist_ok=True)
         db.create_all()  # Өгөгдлийн санг зөв багануудтай шинээр үүсгэх
     app.run(debug=True)
