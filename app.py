@@ -1,4 +1,6 @@
 ﻿import os
+import csv
+import requests
 import google.generativeai as genai
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
@@ -25,7 +27,6 @@ bcrypt = Bcrypt(app)
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'auth.login'
-login_manager.login_message_category = 'info'
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -39,91 +40,105 @@ class User(db.Model, UserMixin):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-from auth import auth as auth_blueprint
-app.register_blueprint(auth_blueprint, url_prefix='/auth')
-
 with app.app_context():
     if not os.path.exists(db_path):
         db.create_all()
 
-# Стандарт тестийн өгөгдөл
-MOCK_TESTS = {
-    '5': [
-        {'id': 1, 'q': 'Хоёр тооны нийлбэр 45, харьцаа нь 2:3 бол их тоог ол.', 'a': '27', 'b': '18', 'c': '25', 'd': '30', 'correct': 'a', 'topic': 'Математик (Харьцаа)'},
-        {'id': 2, 'q': 'Өгүүлбэрийг зөв залгалаар холбоно уу: "Би ном ... уншив."', 'a': 'ыг', 'b': 'ийг', 'c': 'ы', 'd': 'ийн', 'correct': 'b', 'topic': 'Монгол хэл (Тийн ялгал)'}
-    ],
-    '9': [
-        {'id': 1, 'q': 'x² - 5x + 6 = 0 тэгшитгэлийн шийдүүдийг ол.', 'a': '2 ба 3', 'b': '-2 ба -3', 'c': '1 ba 6', 'd': '0 ба 5', 'correct': 'a', 'topic': 'Математик (Тэгшитгэл)'},
-        {'id': 2, 'q': 'Нэгэн жигд хөдөлгөөний хурд v = 10 м/с, хугацаа t = 5 с бол явсан замыг ол.', 'a': '2 м', 'b': '50 м', 'c': '15 м', 'd': '0.5 м', 'correct': 'b', 'topic': 'Физик (Механик хөдөлгөөн)'}
-    ],
-    '12': [
-        {'id': 1, 'q': 'f(x) = x³ - 3x функцийн уламжлалыг ол.', 'a': '3x² - 3', 'b': 'x² - 3', 'c': '3x²', 'd': '3x - 3', 'correct': 'a', 'topic': 'Математик (Уламжлал)'},
-        {'id': 2, 'q': 'Which sentence is in Present Perfect tense?', 'a': 'I am eating.', 'b': 'I ate yesterday.', 'c': 'I have eaten.', 'd': 'I will eat.', 'correct': 'c', 'topic': 'Англи хэл (Үйл үг)'}
-    ]
-}
+# 🔥 GOOGLE SHEET-ЭЭС ТЕСТҮҮДИЙГ РЕАЛ ЦАГТ УНШИХ ФУНКЦ
+def get_sheets_data():
+    # Таны өгсөн Google Sheet-ийн CSV экспорт линк
+    sheet_url = "https://docs.google.com/spreadsheets/d/1RqJo5t0_iC0fr5bOEfCkNrAjBlmFuAe2BOZL6ewjA_A/export?format=csv&gid=0"
+    tests_db = {}
+    try:
+        response = requests.get(sheet_url)
+        response.encoding = 'utf-8'
+        lines = response.text.splitlines()
+        reader = csv.DictReader(lines)
+        
+        for row in reader:
+            # Хоосон мөрүүдээс хамгаалах
+            if not row.get('Анги') or not row.get('Асуулт'):
+                continue
+                
+            grade = str(row['Анги']).strip()
+            subject = str(row['Хичээл']).strip() if row.get('Хичээл') else 'Ерөнхий'
+            
+            if grade not in tests_db:
+                tests_db[grade] = {}
+            if subject not in tests_db[grade]:
+                tests_db[grade][subject] = []
+                
+            tests_db[grade][subject].append({
+                'id': str(row.get('ID', len(tests_db[grade][subject]) + 1)),
+                'q': row['Асуулт'].strip(),
+                'a': row.get('А', '').strip(),
+                'b': row.get('Б', '').strip(),
+                'c': row.get('В', '').strip(),
+                'd': row.get('Г', '').strip(),
+                'correct': row['Зөв'].strip().lower() if row.get('Зөв') else 'a',
+                'image': row.get('Зураг', '').strip(), # Хэрэв зураг байгаа бол URL хадгалагдана
+                'topic': f"{subject} ({row.get('Сэдэв', 'Бататгал')})"
+            })
+        return tests_db
+    except Exception as e:
+        print(f"Sheet уншихад алдаа гарлаа: {e}")
+        # Алдаа гарвал ажиллах backup дата
+        return {
+            '5': {'Математик': [{'id':'1', 'q':'Хоёр тооны нийлбэр 45, харьцаа 2:3 бол их тоо?', 'a':'27','b':'18','c':'25','d':'30','correct':'a','image':'','topic':'Харьцаа'}]}
+        }
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if 'student_stats' not in session:
         session['student_stats'] = {
-            'total_score': 'Хүлээгдэж буй',
-            'total_tests': 0,
-            'strong_topics': ['Одоогоор тест ажиллаагүй байна'],
-            'weak_topics': ['Одоогоор тест ажиллаагүй байна'],
-            'details': [
-                {'subject': 'Математик', 'score': 0, 'status': 'Идэвхгүй', 'color': 'var(--text3)'},
-                {'subject': 'Англи хэл', 'score': 0, 'status': 'Идэвхгүй', 'color': 'var(--text3)'},
-                {'subject': 'Физик', 'score': 0, 'status': 'Идэвхгүй', 'color': 'var(--text3)'},
-                {'subject': 'Монгол хэл', 'score': 0, 'status': 'Идэвхгүй', 'color': 'var(--text3)'}
-            ]
+            'total_score': 'Хүлээгдэж буй', 'total_tests': 0,
+            'strong_topics': ['Одоогоор тест ажиллаагүй байна'], 'weak_topics': ['Одоогоор тест ажиллаагүй байна'],
+            'details': [{'subject': 'Математик', 'score': 0, 'status': 'Идэвхгүй', 'color': 'var(--text3)'}]
         }
-
     if 'chat_history' not in session:
         session['chat_history'] = []
 
     if request.method == 'POST' and 'prompt' in request.form:
         user_prompt = request.form.get('prompt')
-        ai_response = ""
-        
         try:
             model = genai.GenerativeModel("models/gemini-1.5-flash")
-            system_instruction = "Чи бол Super Brain системийн ухаалаг AI туслах байна. Хариултыг маш тодорхой, цэгцтэй монгол хэлээр хариулна уу."
-            context = system_instruction + "\n\n"
-            for chat in session.get('chat_history', []):
-                context += f"Сурагч: {chat['user']}\nХариулт: {chat['ai']}\n"
-            context += f"\nШинэ асуулт: {user_prompt}"
+            system_instruction = "Чи бол Super Brain системийн AI туслах байна. Цэгцтэй монгол хэлээр хариулна уу."
+            context = system_instruction + "\n\n" + f"Сурагч: {user_prompt}"
             response = model.generate_content(context)
             ai_response = response.text
         except Exception:
-            try:
-                model = genai.GenerativeModel("gemini-1.5-flash")
-                response = model.generate_content(user_prompt)
-                ai_response = response.text
-            except Exception as inner_e:
-                ai_response = f"Уучлаарай, AI системтэй холбогдоход алдаа гарлаа: {str(inner_e)}"
-        
+            ai_response = "AI систем түр хугацаанд завгүй байна."
+            
         history = session.get('chat_history', [])
         history.append({'user': user_prompt, 'ai': ai_response})
         session['chat_history'] = history
         session.modified = True
 
-    # Хамгийн сүүлийн тестийн нарийвчилсан хариуг хуудас руу дамжуулна
+    # Сүүлийн тестийн дэлгэрэнгүй хариуг хуудас руу илгээх
     detailed_results = session.get('last_test_results', None)
-    return render_template('index.html', chat_history=session['chat_history'], stats=session['student_stats'], detailed_results=detailed_results)
-
-@app.route('/take-test/<grade>', methods=['GET', 'POST'])
-def take_test(grade):
-    questions = MOCK_TESTS.get(grade, [])
     
+    # Сүлжээний өгөгдлийг уншиж, нүүр хуудасны анги бүрт ямар хичээл байгааг илгээнэ
+    all_data = get_sheets_data()
+    grade_subjects = {grade: list(subjects.keys()) for grade, subjects in all_data.items()}
+
+    return render_template('index.html', chat_history=session['chat_history'], stats=session['student_stats'], detailed_results=detailed_results, grade_subjects=grade_subjects)
+
+@app.route('/take-test/<grade>/<subject>', methods=['GET', 'POST'])
+def take_test(grade, subject):
+    all_data = get_sheets_data()
+    questions = injustices = all_data.get(grade, {}).get(subject, [])
+    
+    if not questions:
+        flash("Уучлаарай, энэ хичээл дээр одоогоор асуулт бэлдэгдээгүй байна.", "info")
+        return redirect(url_for('index'))
+
     if request.method == 'POST':
         correct_count = 0
-        strong = []
-        weak = []
-        test_report = [] # Сонгосон хариултуудыг цуглуулах жагсаалт
+        strong, weak, test_report = [], [], []
         
         for q in questions:
             user_ans = request.form.get(f"q_{q['id']}")
-            is_correct = (user_ans == q['correct'])
+            is_correct = (user_ans == q['correct'].lower() if user_ans else False)
             
             if is_correct:
                 correct_count += 1
@@ -131,7 +146,6 @@ def take_test(grade):
             else:
                 weak.append(q['topic'])
                 
-            # Асуулт бүрийн дэлгэрэнгүй тайлан
             test_report.append({
                 'question': q['q'],
                 'user_answer': user_ans.upper() if user_ans else 'Бөглөөгүй',
@@ -142,30 +156,20 @@ def take_test(grade):
         
         score_pct = int((correct_count / len(questions)) * 100)
         
-        # Үндсэн дүнгийн хавтанг шинэчлэх
         current_stats = {
             'total_score': f"{score_pct}%",
             'total_tests': session.get('student_stats', {}).get('total_tests', 0) + 1,
-            'strong_topics': list(set(strong)) if strong else ['Байхгүй (Бататгах шаардлагатай)'],
-            'weak_topics': list(set(weak)) if weak else ['Байхгүй (Маш сайн)'],
-            'details': [
-                {'subject': 'Математик', 'score': score_pct, 'status': 'Сайн' if score_pct >= 80 else 'Анхаарах', 'color': 'var(--green2)' if score_pct >= 80 else 'var(--purple2)'},
-                {'subject': 'Ерөнхий эрдэм', 'score': score_pct, 'status': 'Дуусгасан', 'color': 'var(--blue2)'}
-            ]
+            'strong_topics': list(set(strong)) if strong else ['Байхгүй'],
+            'weak_topics': list(set(weak)) if weak else ['Байхгүй'],
+            'details': [{'subject': subject, 'score': score_pct, 'status': 'Дуусгасан', 'color': 'var(--blue2)'}]
         }
         
         session['student_stats'] = current_stats
-        session['last_test_results'] = {
-            'grade': grade,
-            'score': score_pct,
-            'report': test_report
-        }
+        session['last_test_results'] = {'grade': f"{grade} ({subject})", 'score': score_pct, 'report': test_report}
         session.modified = True
-        
-        flash(f"{grade}-р ангийн тестийг бөглөж дууслаа.", "success")
         return redirect(url_for('index'))
 
-    return render_template('test.html', grade=grade, questions=questions)
+    return render_template('test.html', grade=grade, subject=subject, questions=questions)
 
 @app.route('/clear-chat')
 def clear_chat():

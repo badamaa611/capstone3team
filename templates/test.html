@@ -3,32 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ grade }}-р ангийн тест standard</title>
+  <title>{{ grade }}-р анги: {{ subject }} тест</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#0f172a;padding:40px 20px}
     .test-box{max-width:680px;background:#ffffff;margin:0 auto;padding:30px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,0.05);border:1px solid #e2e8f0}
-    .title{font-size:22px;font-weight:800;margin-bottom:20px;color:#0C447C;display:flex;align-items:center;gap:10px}
+    .title{font-size:20px;font-weight:800;margin-bottom:20px;color:#0C447C;display:flex;align-items:center;gap:10px}
     .q-block{margin-bottom:25px;padding-bottom:20px;border-bottom:1px solid #edf2f7}
     .q-text{font-size:16px;font-weight:600;margin-bottom:12px}
+    
+    /* 🔥 ШИНЭ: ТЕСТИЙН ЗУРГИЙГ ХАРУУЛАХ СТИЛЬ */
+    .q-image{max-width:100%; max-height:280px; object-fit:contain; border-radius:8px; margin-bottom:15px; border:1px solid #e2e8f0; display:block}
+    
     .options{display:flex;flex-direction:column;gap:8px}
     .option-label{background:#f1f5f9;padding:12px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:14px;transition:all 0.2s}
     .option-label:hover{background:#e2e8f0}
-    .sub-btn{width:100%;padding:14px;background:linear-gradient(135deg,#378ADD,#7F77DD);border:none;border-radius:10px;color:#fff;font-weight:700;font-size:15px;cursor:pointer;box-shadow:0 4px 15px rgba(55,138,221,0.2)}
-    .sub-btn:hover{opacity:0.95}
+    .sub-btn{width:100%;padding:14px;background:linear-gradient(135deg,#378ADD,#7F77DD);border:none;border-radius:10px;color:#fff;font-weight:700;font-size:15px;cursor:pointer}
     .back-lnk{display:block;text-align:center;margin-top:15px;font-size:13px;color:#64748b;text-decoration:none}
   </style>
 </head>
 <body>
 
   <div class="test-box">
-    <div class="title"><i class="ti ti-file-text"></i> {{ grade }}-р ангийн шалгалтын бэлтгэл тест</div>
+    <div class="title">
+      <i class="ti ti-file-text"></i> {{ grade }}-р анги · {{ subject }} шалгалт
+    </div>
     
-    <form action="/take-test/{{ grade }}" method="POST">
+    <form action="/take-test/{{ grade }}/{{ subject }}" method="POST">
       {% for q in questions %}
         <div class="q-block">
           <p class="q-text">{{ loop.index }}. {{ q.q }}</p>
+          
+          {% if q.image and q.image != '' %}
+            <img src="{{ q.image }}" class="q-image" alt="Асуултын зураг">
+          {% endif %}
+          
           <div class="options">
             <label class="option-label"><input type="radio" name="q_{{ q.id }}" value="a" required> A) {{ q.a }}</label>
             <label class="option-label"><input type="radio" name="q_{{ q.id }}" value="b"> B) {{ q.b }}</label>
@@ -38,10 +48,10 @@
         </div>
       {% endfor %}
       
-      <button type="submit" class="sub-btn">Тестийг дуусгах, дүн харах</button>
+      <button type="submit" class="sub-btn">Шалгалтыг дуусгаж, үр дүнг харах</button>
     </form>
     
-    <a href="/" class="back-lnk">Нүүр хуудас руу буцах</a>
+    <a href="/" class="back-lnk">Буцах</a>
   </div>
 
 </body>
