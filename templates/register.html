@@ -7,37 +7,24 @@
         <div class="auth-card p-4 p-sm-5">
             <h2 class="text-center mb-4"><i class="fa-solid fa-user-plus text-primary me-2"></i>Бүртгүүлэх</h2>
             
-            <form method="POST" action="{{ url_for('register') }}">
-                <div class="mb-3">
-                    <label class="form-label">Таны нэр</label>
-                    <input type="text" name="username" class="form-control" required placeholder="Нэрээ оруулна уу">
-                </div>
-                
-                <div class="mb-3">
-                    <label class="form-label">И-мэйл хаяг</label>
-                    <input type="email" name="email" class="form-control" required placeholder="email@example.com">
-                </div>
-                
-                <div class="mb-3">
-                    <label class="form-label">Нууц үг</label>
-                    <input type="password" name="password" class="form-control" required placeholder="Нууц үг зохионо уу">
-                </div>
-                
-                <div class="mb-3">
-                    <label class="form-label">Таны үүрэг (Хэн бэ?)</label>
-                    <select name="role" class="form-select">
-                        <option value="suragch">Сурагч</option>
-                        <option value="bagsh">Багш</option>
-                    </select>
-                </div>
-                
-                <div class="mb-4">
-                    <label class="form-label">Анги / Бүлэг</label>
-                    <input type="text" name="grade" class="form-control" placeholder="Жишээ нь: 12А, 9Б">
-                </div>
-                
-                <button type="submit" class="btn btn-primary w-100 py-2.5 mb-3">Бүртгүүлэх</button>
-            </form>
+           <form method="POST" action="{{ url_for('register') }}">
+    <div class="mb-3">
+        <label class="form-label">Нэвтрэх нэр</label>
+        <input type="text" name="username" class="form-control" required placeholder="Нэвтрэх нэрээ оруулна уу">
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label">Таны нэр</label>
+        <input type="text" name="ner" class="form-control" required placeholder="Овог нэрээ оруулна уу">
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label">Нууц үг</label>
+        <input type="password" name="password" class="form-control" required placeholder="Нууц үг зохионо уу">
+    </div>
+    
+    <button type="submit" class="btn btn-primary w-100 py-2.5">Бүртгүүлэх</button>
+</form>
 
             <div class="text-center mt-3">
                 <span class="text-muted">Бүртгэлтэй юу?</span> 
