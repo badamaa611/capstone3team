@@ -1,6 +1,6 @@
 ﻿import os
 import google.generativeai as genai
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, current_user
 from flask_bcrypt import Bcrypt
@@ -49,7 +49,6 @@ def load_user(user_id):
 from auth import auth as auth_blueprint
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-# 🔥 ХАМГИЙН ЧУХАЛ: Өгөгдлийн сан устдаг алдааг засав (Зөвхөн файл байхгүй бол үүсгэнэ)
 with app.app_context():
     if not os.path.exists(db_path):
         db.create_all()
@@ -57,10 +56,7 @@ with app.app_context():
 # 5. Үндсэн хуудаснууд
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    ai_response = None
-    user_prompt = None
-    
-    # Сурагчийн дүнгийн задаргааны үзүүлэн дата (Эдгээрийг дараа нь өгөгдлийн сантай холбож болно)
+    # Сонгосон сурагчийн үзүүлэн дата
     student_stats = {
         'total_score': '84%',
         'total_tests': 12,
@@ -74,28 +70,53 @@ def index():
         ]
     }
     
+    # Хэрэв чат шинээр эхэлж байвал түүхийг үүсгэх
+    if 'chat_history' not in session:
+        session['chat_history'] = []
+
     if request.method == 'POST' and 'prompt' in request.form:
         user_prompt = request.form.get('prompt')
+        
         try:
-            model = genai.GenerativeModel(model_name="models/gemini-1.5-flash-latest")
+            # 🔥 API ТОХИРГООГ ЗАСАВ: Одоо цагт хамгийн тогтвортой ажилладаг зөв нэршил
+            model = genai.GenerativeModel(model_name="gemini-1.5-flash")
+            
             system_instruction = (
                 "Чи бол Super Brain системийн ухаалаг AI туслах багш байна. "
                 "Сурагчид чамаас мэргэжил сонголт, шалгалтын сэдэв, монгол/англи хэлний дүрэм, "
                 "математик/физикийн томьёо асууна. Чи хариултыг маш тодорхой, ойлгомжтой, "
                 "сурагчдад урам зориг өгөхүйцээр, цэгцтэй (bullet points ашиглан) монгол хэлээр хариулна уу."
             )
-            full_prompt = f"{system_instruction}\n\nАсуулт: {user_prompt}"
-            response = model.generate_content(full_prompt)
+            
+            # Өмнөх ярианы түүхийг Gemini-д контекст болгож өгөх үе шат
+            context = system_instruction + "\n\n"
+            for chat in session['chat_history']:
+                context += f"Сурагч: {chat['user']}\nБагш: {chat['ai']}\n"
+            context += f"\nШинэ асуулт: {user_prompt}"
+            
+            response = model.generate_content(context)
             ai_response = response.text
+            
+            # Шинэ харилцааг түүх рүү нэмэх (session хадгалахын тулд дахин онооно)
+            history = session['chat_history']
+            history.append({'user': user_prompt, 'ai': ai_response})
+            session['chat_history'] = history
+            session.modified = True
+            
         except Exception as e:
-            try:
-                model = genai.GenerativeModel("gemini-pro")
-                response = model.generate_content(f"Хариултыг монголоор цэгцтэй өгнө үү. Асуулт: {user_prompt}")
-                ai_response = response.text
-            except Exception as inner_e:
-                ai_response = f"Уучлаарай, AI системтэй холбогдоход алдаа гарлаа: {str(inner_e)}"
+            ai_response = f"Уучлаарай, AI системтэй холбогдоход алдаа гарлаа: {str(e)}"
+            history = session['chat_history']
+            history.append({'user': user_prompt, 'ai': ai_response})
+            session['chat_history'] = history
+            session.modified = True
 
-    return render_template('index.html', prompt=user_prompt, ai_response=ai_response, stats=student_stats)
+    return render_template('index.html', chat_history=session['chat_history'], stats=student_stats)
+
+# Чатыг шинээр эхлүүлэх (Цэвэрлэх товчлуур дарахад)
+@app.route('/clear-chat')
+def clear_chat():
+    session.pop('chat_history', None)
+    return redirect(url_for('index'))
 
 @app.route('/tests')
 def tests():

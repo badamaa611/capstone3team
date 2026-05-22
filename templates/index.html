@@ -10,20 +10,19 @@
     html{scroll-behavior:smooth}
     body{background:var(--bg,#ffffff);min-height:100vh;position:relative;overflow-x:hidden;transition:background .3s,color .3s;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:16px;line-height:1.7;color:#0f172a;padding-top:76px}
     
-    /* --- Бөмбөлөг эффект засав --- */
     .bubbles {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      z-index: 0; /* Дарааллыг зөв болгов */
+      z-index: 0;
       pointer-events: none;
     }
     .bubble {
       position: absolute;
       border-radius: 50%;
-      background: rgba(57, 138, 221, 0.15); /* Тод болгов */
+      background: rgba(57, 138, 221, 0.15);
       animation: float-up 12s infinite linear;
       bottom: -100px;
     }
@@ -71,78 +70,58 @@
     .hh{font-size:3rem;font-weight:800;display:block;margin:0 auto 1.5rem;max-width:100%;color:var(--text);line-height:1.2;letter-spacing:-0.5px}
     .hh .gr{background:linear-gradient(135deg,var(--blue2),var(--purple2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 
+    /* --- ЧАТ БАЙДАРЛААР ХАРАГДАХ ШИНЭ AI BOX СТИЛЬ --- */
     .ai-search-wrap{max-width:760px;margin:0 auto 2.5rem}
-    .ai-search-box{background:var(--surface);border:.5px solid var(--border);border-radius:16px;box-shadow:0 8px 36px rgba(15,23,42,0.06);overflow:hidden;transition:border-color .2s,box-shadow .2s}
-    .ai-search-box:focus-within{border-color:var(--blue2);box-shadow:0 12px 40px rgba(55,138,221,0.12)}
-    .ai-input-row{display:flex;align-items:center;gap:10px;padding:16px 18px}
+    .ai-search-box{background:var(--surface);border:.5px solid var(--border);border-radius:16px;box-shadow:0 8px 36px rgba(15,23,42,0.06);overflow:hidden;transition:border-color .2s,box-shadow .2s;display:flex;flex-direction:column;}
+    
+    .chat-stream {
+      max-height: 380px;
+      overflow-y: auto;
+      padding: 15px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .chat-message {
+      padding: 12px 16px;
+      border-radius: 12px;
+      max-width: 85%;
+      font-size: 14px;
+      line-height: 1.6;
+      text-align: left;
+      white-space: pre-wrap;
+    }
+    .msg-user {
+      background: var(--blue1);
+      color: var(--blue3);
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+    .msg-ai {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+    
+    .ai-input-row{display:flex;align-items:center;gap:10px;padding:14px 18px}
     .ai-icon{color:var(--blue2);font-size:20px;flex-shrink:0}
     .ai-input{flex:1;border:none;background:transparent;font-size:15px;color:var(--text);outline:none;min-width:0}
     .ai-input::placeholder{color:var(--text3)}
     .ai-send{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#378ADD,#7F77DD);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s;font-size:16px;font-weight:bold}
 
-    .ai-response-box {
-      margin-top: 15px;
-      padding: 20px;
-      background: var(--bg2);
-      border-top: 1px solid var(--border);
-      text-align: left;
-      font-size: 14px;
-      color: var(--text);
-      line-height: 1.8;
-      white-space: pre-wrap;
-    }
-
-    /* --- Сурагчийн дүн, задаргаа харуулах шинэ хэсэг --- */
-    .dashboard-section {
-      max-width: 760px;
-      margin: 0 auto 2.5rem;
-      text-align: left;
-    }
-    .dash-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-    .dash-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 4px 15px var(--shadow);
-    }
-    .dash-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text2);
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .topic-list {
-      list-style: none;
-      padding: 0;
-    }
-    .topic-list li {
-      font-size: 14px;
-      padding: 6px 0;
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .stat-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 8px;
-    }
-    .stat-table th, .stat-table td {
-      padding: 10px;
-      text-align: left;
-      font-size: 14px;
-      border-bottom: 1px solid var(--border);
-    }
+    /* Сурагчийн дүн, задаргаа харуулах хэсэг */
+    .dashboard-section { max-width: 760px; margin: 0 auto 2.5rem; text-align: left; }
+    .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .dash-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: 0 4px 15px var(--shadow); }
+    .dash-title { font-size: 14px; font-weight: 700; color: var(--text2); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .topic-list { list-style: none; padding: 0; }
+    .topic-list li { font-size: 14px; padding: 6px 0; color: var(--text); display: flex; align-items: center; gap: 8px; }
+    .stat-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .stat-table th, .stat-table td { padding: 10px; text-align: left; font-size: 14px; border-bottom: 1px solid var(--border); }
     .stat-table th { color: var(--text2); font-weight: 600; }
 
     .grade-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;max-width:840px;margin:0 auto 2.5rem}
@@ -196,20 +175,27 @@
 
       <div class="ai-search-wrap">
         <div class="ai-search-box">
+          
+          {% if chat_history %}
+            <div class="chat-stream" id="chatStream">
+              {% for chat in chat_history %}
+                <div class="chat-message msg-user"><b>Би:</b> {{ chat.user }}</div>
+                <div class="chat-message msg-ai"><b>Багш AI:</b> {{ chat.ai }}</div>
+              {% endfor %}
+            </div>
+            <div style="text-align: right; padding: 6px 15px; background: var(--bg2);">
+              <a href="/clear-chat" style="font-size: 11px; color: var(--text3); text-decoration: none;"><i class="ti ti-trash"></i> Яриаг цэвэрлэх</a>
+            </div>
+          {% endif %}
+          
           <form action="/" method="POST" style="width: 100%;">
             <div class="ai-input-row">
               <i class="ti ti-sparkles ai-icon" aria-hidden="true"></i>
-              <input class="ai-input" name="prompt" id="aiInput" required value="{% if prompt %}{{ prompt }}{% endif %}" placeholder="Мэргэжил, хичээлийн сэдэв, хэлний дүрэм, томьёо асуух..." />
+              <input class="ai-input" name="prompt" id="aiInput" required autocomplete="off" placeholder="Мэргэжил, хичээлийн сэдэв, хэлний дүрэм, томьёо асуух..." />
               <button type="submit" class="ai-send">↑</button>
             </div>
           </form>
           
-          {% if ai_response %}
-            <div class="ai-response-box">
-              <strong><i class="ti ti-robot"></i> Super Brain AI Хариулт:</strong>
-              <div style="margin-top: 10px;">{{ ai_response }}</div>
-            </div>
-          {% endif %}
         </div>
       </div>
 
@@ -281,7 +267,6 @@
   </div>
 
   <script>
-    // Бөмбөлөг үүсгэх JS кодыг илүү тод, дээр хөвдөг болгож засав
     function createBubbles() {
       const container = document.getElementById('bubble-container');
       const bubbleCount = 20;
@@ -298,6 +283,12 @@
       }
     }
     createBubbles();
+
+    // Чатыг үргэлж хамгийн доод хэсэг рүү гүйлгэж харуулах логик
+    const stream = document.getElementById('chatStream');
+    if(stream) {
+      stream.scrollTop = stream.scrollHeight;
+    }
   </script>
 </body>
 </html>
