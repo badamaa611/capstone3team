@@ -2,6 +2,7 @@
 from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin
+from flask_bcrypt import Bcrypt  # Энд нэмэв
 
 # 1. Аппликейшн үүсгэх болон тохиргоо
 app = Flask(__name__)
@@ -17,8 +18,10 @@ if not os.path.exists(instance_path):
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(instance_path, 'user.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# 2. Өгөгдлийн сан болон Логин менежер бэлдэх
+# 2. Сангуудыг аппликейшнтэй холбох
 db = SQLAlchemy(app)
+bcrypt = Bcrypt(app)  # Bcrypt-ийг апп-тай зөв холбож өгөв!
+
 login_manager = LoginManager(app)
 login_manager.login_view = 'auth.login'
 login_manager.login_message_category = 'info'
@@ -40,13 +43,12 @@ def load_user(user_id):
 from auth import auth as auth_blueprint
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-# Хүснэгтүүдийг автоматаар үүсгэх ложик
-# ШИНЭЧЛЭХ КОД:
+# Өгөгдлийн санг шинээр цэвэрхэн үүсгэх
 with app.app_context():
-    db.drop_all()   # Хуучин буруу бүтэцтэй хүснэгтийг бүрмөсөн устгана
-    db.create_all()  # Шинэ багануудтай (ner, role, grade) зөв хүснэгтийг үүсгэнэ
+    db.drop_all()   # Одоо байгаа гацсан бүх хүснэгтийг устгана
+    db.create_all()  # Шинэ цэвэр хүснэгт үүсгэнэ
 
-# 5. Үндсэн хуудаснуудын замууд (Routes)
+# 5. Үндсэн хуудаснууд
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -59,6 +61,5 @@ def tests():
 def ai_chat():
     return "<h3>AI Зөвлөх систем (Удахгүй нэмэгдэнэ)</h3><a href='/'>Нүүр хуудас руу буцах</a>"
 
-# 6. Аппликейшнийг локалоор ажиллуулах хэсэг
 if __name__ == '__main__':
     app.run(debug=True)
