@@ -252,24 +252,26 @@
       {% endif %}
 
       <div class="grade-row">
-        <div class="gc g5"><span class="gn">5</span><span class="gl">Дугаар анги</span></div>
-        <div class="gc g9"><span class="gn">9</span><span class="gl">Дугаар анги</span></div>
-        <div class="gc g12"><span class="gn">12</span><span class="gl">Дугаар анги</span></div>
+        <div class="gc g5" onclick="location.href='/take-test/5'">
+          <span class="gn">5</span>
+          <span class="gl">Дугаар анги (Тест)</span>
+        </div>
+        <div class="gc g9" onclick="location.href='/take-test/9'">
+          <span class="gn">9</span>
+          <span class="gl">Дугаар анги (Тест)</span>
+        </div>
+        <div class="gc g12" onclick="location.href='/take-test/12'">
+          <span class="gn">12</span>
+          <span class="gl">Дугаар анги (Тест)</span>
+        </div>
       </div>
-    </div>
-
-    <hr class="div">
-    
-    <div class="fg">
-      <div class="fc"><div class="fi"><i class="ti ti-checklist"></i></div><div><p class="ft">Blueprint standard test</p><p class="fd">Мэдлэг 27% · Чадвар 53% · Хэрэглээ 20% олон улсын үнэлгээний аргачлал.</p></div></div>
-      <div class="fc"><div class="fi"><i class="ti ti-brain"></i></div><div><p class="ft">AI Adaptive dasgal</p><p class="fd">Алдаатай сэдвийг шууд таньж, Gemini хиймэл оюунаар бататгах дасгал үүсгэнэ.</p></div></div>
     </div>
   </div>
 
   <script>
     function createBubbles() {
       const container = document.getElementById('bubble-container');
-      const bubbleCount = 20;
+      const bubbleCount = 40;
       for (let i = 0; i < bubbleCount; i++) {
         let bubble = document.createElement('div');
         bubble.className = 'bubble';
