@@ -3,7 +3,27 @@ from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin
 from flask_bcrypt import Bcrypt
+from flask import Flask, render_template, request, jsonify
+# ... бусад импортууд ...
 
+# AI асуултын зам (Route)
+@app.route('/ai-ask', methods=['POST'])
+def ai_ask():
+    data = request.get_json()
+    user_query = data.get('query')
+    
+    if not user_query:
+        return jsonify({"answer": "Асуултаа оруулна уу."})
+
+    try:
+        # Энд та өөрийн Gemini API түлхүүрийг ашиглан жинхэнэ хариулт авна.
+        # Одоогоор жишээ хариулт буцааж байна.
+        ai_response = f"'{user_query}' сэдвийн хүрээнд Superbrain AI зөвлөж байна: Энэхүү сэдэв нь улсын шалгалтын блупринтэд чухал байр суурь эзэлдэг тул тест хэсгээс дэлгэрүүлж үзээрэй."
+        return jsonify({"answer": ai_response})
+    except Exception as e:
+        return jsonify({"answer": f"AI холболтод алдаа гарлаа: {str(e)}"})
+
+# ... бусад кодууд ...
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'super-brain-secret-key-2026'
 
@@ -63,3 +83,4 @@ def ai_chat():
 
 if __name__ == '__main__':
     app.run(debug=True)
+    

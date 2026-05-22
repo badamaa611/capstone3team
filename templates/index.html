@@ -37,7 +37,7 @@
 
         /* --- Bubble Эффект --- */
         .bubbles {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
@@ -48,7 +48,7 @@
         .bubble {
             position: absolute;
             border-radius: 50%;
-            background: rgba(0, 102, 254, 0.04);
+            background: rgba(0, 102, 254, 0.05);
             animation: float-up 12s infinite linear;
             bottom: -50px;
         }
@@ -73,6 +73,8 @@
             font-weight: 700;
             color: var(--genspark-primary);
             text-decoration: none;
+            display: flex;
+            align-items: center;
         }
 
         /* Өдөр/Шөнө товчлуур */
@@ -80,22 +82,70 @@
             background: none;
             border: 1px solid var(--border-color);
             color: var(--dark-text);
-            padding: 6px 12px;
+            padding: 6px 14px;
             border-radius: 20px;
             cursor: pointer;
             font-size: 14px;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
         .theme-toggle-btn:hover {
             border-color: var(--genspark-primary);
         }
 
+        /* Hero хэсэг */
         .hero-genspark {
             background-color: var(--card-bg);
             padding: 60px 0;
             border-bottom: 1px solid var(--border-color);
             margin-bottom: 40px;
             transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        /* --- AI Хайлтын Цонх (Genspark Style) --- */
+        .ai-search-container {
+            max-width: 700px;
+            margin: 35px auto 10px auto;
+            position: relative;
+        }
+        .ai-search-input {
+            width: 100%;
+            padding: 18px 25px;
+            padding-right: 65px;
+            border-radius: 30px;
+            border: 2px solid var(--border-color);
+            background: var(--genspark-bg);
+            color: var(--dark-text);
+            font-size: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            transition: all 0.3s;
+        }
+        .ai-search-input:focus {
+            outline: none;
+            border-color: var(--genspark-primary);
+            box-shadow: 0 8px 25px rgba(0, 102, 254, 0.1);
+        }
+        .ai-search-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--genspark-primary);
+            color: white;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .ai-search-btn:hover {
+            background: #0052cc;
         }
 
         /* Ангийн картууд */
@@ -167,197 +217,3 @@
         }
         .feature-icon {
             font-size: 24px;
-            color: var(--genspark-primary);
-            margin-bottom: 15px;
-            background: rgba(0, 102, 254, 0.06);
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 10px;
-        }
-        .feature-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        .feature-text {
-            font-size: 14px;
-            color: #64748b;
-            line-height: 1.5;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="bubbles" id="bubble-container"></div>
-
-    <nav class="navbar navbar-expand-lg navbar-genspark">
-        <div class="container">
-            <a class="brand-logo" href="/">
-                <i class="fa-solid fa-brain me-2"></i>Superbrain Цогц Систем
-            </a>
-            <div class="ms-auto d-flex align-items-center gap-3">
-                <button class="theme-toggle-btn" onclick="toggleTheme()">
-                    <i class="fa-solid fa-moon me-1" id="theme-icon"></i> <span id="theme-text">Шөнө</span>
-                </button>
-
-                {% if current_user.is_authenticated %}
-                    <span>Сайн байна уу, <strong>{{ current_user.ner }}</strong>!</span>
-                    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm px-3">Гарах</a>
-                {% else %}
-                    <a href="{{ url_for('auth.login') }}" class="btn btn-link text-decoration-none text-secondary btn-sm">Нэвтрэх</a>
-                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm px-3" style="background-color: var(--genspark-primary); border: none;">Бүртгүүлэх</a>
-                {% endif %}
-            </div>
-        </div>
-    </nav>
-
-    <div class="hero-genspark">
-        <div class="container text-center">
-            <h1 class="fw-bold mb-3" style="font-size: 32px;">Улсын Шалгалтын Бэлтгэл Систем</h1>
-            <p class="text-secondary mx-auto" style="max-width: 600px; font-size: 16px;">Батлагдсан албан ёсны блупринтийн дагуу бэлтгэсэн 5, 9, 12-р ангийн жишиг даалгавар, тестүүд.</p>
-        </div>
-    </div>
-
-    <div class="container mb-5">
-        <div class="row g-4 justify-content-center">
-            <div class="col-md-4">
-                <div class="grade-box" onclick="toggleGensparkSubjects('g5')">
-                    <div class="grade-number">5</div>
-                    <h5 class="fw-bold mb-1">Бага боловсрол</h5>
-                    <p class="text-muted small mb-0">Төгсөх ангийн шалгалт</p>
-                    
-                    <div id="g5" class="subject-container">
-                        <a href="/tests" class="subject-item"><i class="fa-solid fa-book"></i>Эх хэл</a>
-                        <a href="/tests" class="subject-item"><i class="fa-solid fa-calculator"></i>Математик</a>
-                        <a href="/tests" class="subject-item"><i class="fa-solid fa-flask"></i>Байгаль шинжлэл</a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="grade-box" onclick="toggleGensparkSubjects('g9')">
-                    <div class="grade-number">9</div>
-                    <h5 class="fw-bold mb-1">Суурь боловсрол</h5>
-                    <p class="text-muted small mb-0">Төгсөх ангийн шалгалт</p>
-                    
-                    <div id="g9" class="subject-container">
-                        <a href="/tests" class="subject-item"><i class="fa-solid fa-book"></i>Монгол хэл</a>
-                        <a href="/tests" class="subject-item"><i class="fa-solid fa-calculator"></i>Математик</a>
-                        <a href="/tests" class="subject-item"><i class="fa-solid fa-earth-americas"></i>Нийгэм судлал</a>
-                        <a href="/tests" class="subject-item"><i class="fa-solid fa-dna"></i>Байгалийн ухаан</a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="grade-box" onclick="toggleGensparkSubjects('g12')">
-                    <div class="grade-number">12</div>
-                    <h5 class="fw-bold mb-1">Бүрэн дунд боловсрол</h5>
-                    <p class="text-muted small mb-0">ЭЕШ болон төгсөх шалгалт</p>
-                    
-                    <div id="g12" class="subject-container">
-                        <a href="/tests" class="subject-item"><i class="fa-solid fa-calculator"></i>Математик</a>
-                        <a href="/tests" class="subject-item"><i class="fa-solid fa-font"></i>Монгол хэл</a>
-                        <a href="/tests" class="subject-item"><i class="fa-solid fa-language"></i>Англи хэл</a>
-                        <a href="/tests" class="subject-item"><i class="fa-solid fa-atom"></i>Физик / Хими</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="container mb-5 pt-3">
-        <div class="row g-4">
-            <div class="col-md-3">
-                <div class="feature-genspark">
-                    <div class="feature-icon"><i class="fa-solid fa-list-check"></i></div>
-                    <div class="feature-title">Албан ёсны Блупринт</div>
-                    <div class="feature-text">Боловсролын үнэлгээний төвийн албан ёсны шалгалтын бүтцэд суурилсан.</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="feature-genspark">
-                    <div class="feature-icon"><i class="fa-solid fa-robot"></i></div>
-                    <div class="feature-title">Ухаалаг AI Зөвлөх</div>
-                    <div class="feature-text">Сурагчийн алдаан дээр дүн шинжилгээ хийж, чиглүүлэх хиймэл оюун ухаан.</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="feature-genspark">
-                    <div class="feature-icon"><i class="fa-solid fa-chart-pie"></i></div>
-                    <div class="feature-title">Ахиц Дэвшлийн Аналитик</div>
-                    <div class="feature-text">Багш, сурагчийн үр дүнг тодорхой график болон тайлангаар шууд харуулна.</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="feature-genspark">
-                    <div class="feature-icon"><i class="fa-solid fa-stopwatch"></i></div>
-                    <div class="feature-title">Хугацаатай Мок Шалгалт</div>
-                    <div class="feature-text">Яг улсын шалгалтын цагийн хуваарилалтыг дуурайлган хийсэн сорилтууд.</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Ангийн хичээл нээж хаах функц
-        function toggleGensparkSubjects(id) {
-            var allContainers = document.getElementsByClassName('subject-container');
-            for (var i = 0; i < allContainers.length; i++) {
-                if (allContainers[i].id !== id) {
-                    allContainers[i].style.display = 'none';
-                }
-            }
-            var target = document.getElementById(id);
-            target.style.display = (target.style.display === 'block') ? 'none' : 'block';
-        }
-
-        // Өдөр шөнө шилжүүлэх функц
-        function toggleTheme() {
-            const body = document.body;
-            const icon = document.getElementById('theme-icon');
-            const text = document.getElementById('theme-text');
-            
-            if (body.getAttribute('data-theme') === 'dark') {
-                body.removeAttribute('data-theme');
-                icon.className = 'fa-solid fa-moon me-1';
-                text.innerText = 'Шөнө';
-                localStorage.setItem('theme', 'light');
-            } else {
-                body.setAttribute('data-theme', 'dark');
-                icon.className = 'fa-solid fa-sun me-1';
-                text.innerText = 'Өдөр';
-                localStorage.setItem('theme', 'dark');
-            }
-        }
-
-        // Хэрэглэгчийн өмнөх сонголтыг санах
-        if (localStorage.getItem('theme') === 'dark') {
-            document.body.setAttribute('data-theme', 'dark');
-            document.getElementById('theme-icon').className = 'fa-solid fa-sun me-1';
-            document.getElementById('theme-text').innerText = 'Өдөр';
-        }
-
-        // Bubble эффект үүсгэх автомат ложик
-        function createBubbles() {
-            const container = document.getElementById('bubble-container');
-            const bubbleCount = 15;
-            for (let i = 0; i < bubbleCount; i++) {
-                let bubble = document.createElement('div');
-                bubble.className = 'bubble';
-                let size = Math.random() * 40 + 10;
-                bubble.style.width = size + 'px';
-                bubble.style.height = size + 'px';
-                bubble.style.left = Math.random() * 100 + '%';
-                bubble.style.animationDelay = Math.random() * 8 + 's';
-                bubble.style.animationDuration = Math.random() * 6 + 8 + 's';
-                container.appendChild(bubble);
-            }
-        }
-        createBubbles();
-    </script>
-</body>
-</html>
