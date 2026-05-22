@@ -1,42 +1,17 @@
-<!DOCTYPE html>
-<html lang="mn">
-<head>
-  <style>
-    /* Өнгө болон товчлуурын загвар хэвээр */
-    .nbtn{padding:8px 16px;border-radius:10px;background:linear-gradient(135deg,#378ADD,#7F77DD);color:#fff;text-decoration:none;font-weight:600;}
-    .dash-card{background:#fff;border:1px solid #e2e8f0;padding:20px;border-radius:16px;margin-bottom:10px;}
-  </style>
-</head>
-<body>
-  <nav class="nav">
-    <a href="/" class="logo-name">Super Brain</a>
-    {% if current_user.is_authenticated %}
-      <a href="/logout" class="nbtn">Гарах</a>
-    {% endif %}
-  </nav>
+<nav class="nav">
+    <div class="logo-box">SB</div>
+    <div class="nav-auth">
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('logout') }}" class="btn-login">Гарах</a>
+        {% else %}
+            <a href="{{ url_for('login') }}" class="btn-login">Нэвтрэх</a>
+        {% endif %}
+    </div>
+</nav>
 
-  <div class="container">
-    {% if current_user.is_authenticated %}
-      <div class="ai-search-wrap">
-        {% for chat in chats %}
-          <div class="chat-message">{{ chat.prompt }} - {{ chat.response }}</div>
-        {% endfor %}
-      </div>
-      
-      {% for res in results %}
-        <div class="dash-card">{{ res.subject }}: {{ res.score }}%</div>
-      {% endfor %}
-
-      <div class="grade-row">
-        {% for grade, subs in grade_subjects.items() %}
-          <div class="gc" onclick="toggleDropdown('{{grade}}')">
-            <span class="gn">{{grade}}</span>
-          </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <a href="/login" class="nbtn">Нэвтрэх</a>
-    {% endif %}
-  </div>
-</body>
-</html>
+{% if current_user.is_authenticated %}
+    <div class="ai-search-wrap">
+        {% for chat in chats %}<p>{{ chat.response }}</p>{% endfor %}
+    </div>
+    <div class="grade-row"> ... </div>
+{% endif %}
