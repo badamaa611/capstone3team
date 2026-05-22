@@ -41,8 +41,10 @@ from auth import auth as auth_blueprint
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
 # Хүснэгтүүдийг автоматаар үүсгэх ложик
+# ШИНЭЧЛЭХ КОД:
 with app.app_context():
-    db.create_all()
+    db.drop_all()   # Хуучин буруу бүтэцтэй хүснэгтийг бүрмөсөн устгана
+    db.create_all()  # Шинэ багануудтай (ner, role, grade) зөв хүснэгтийг үүсгэнэ
 
 # 5. Үндсэн хуудаснуудын замууд (Routes)
 @app.route('/')
