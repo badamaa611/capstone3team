@@ -11,7 +11,6 @@ def register():
         return redirect(url_for('index'))
         
     if request.method == 'POST':
-        # Энд формын нэрийг уян хатан болгов
         ner = request.form.get('ner') or request.form.get('username') or request.form.get('name')
         email = request.form.get('email')
         password = request.form.get('password')

@@ -2,7 +2,7 @@
 from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin
-from flask_bcrypt import Bcrypt  # Энд нэмэв
+from flask_bcrypt import Bcrypt
 
 # 1. Аппликейшн үүсгэх болон тохиргоо
 app = Flask(__name__)
@@ -20,7 +20,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # 2. Сангуудыг аппликейшнтэй холбох
 db = SQLAlchemy(app)
-bcrypt = Bcrypt(app)  # Bcrypt-ийг апп-тай зөв холбож өгөв!
+bcrypt = Bcrypt(app)
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'auth.login'
@@ -43,10 +43,9 @@ def load_user(user_id):
 from auth import auth as auth_blueprint
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-# Өгөгдлийн санг шинээр цэвэрхэн үүсгэх
+# Өгөгдлийн санг шалгаж, зөвхөн байхгүй бол үүсгэх (drop_all-ийг хасав)
 with app.app_context():
-    db.drop_all()   # Одоо байгаа гацсан бүх хүснэгтийг устгана
-    db.create_all()  # Шинэ цэвэр хүснэгт үүсгэнэ
+    db.create_all()
 
 # 5. Үндсэн хуудаснууд
 @app.route('/')
