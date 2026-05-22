@@ -3,12 +3,13 @@ import random
 import requests
 import csv
 import google.genai as genai
+import re  # Холбоосноос ID-г автоматаар таслах сан
 from flask import Flask, render_template, request, jsonify, flash, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# 1. СИСТЕМИЙН ҮНДСЭН ТОХИРГОО Бааз үүсгэх үйл явц
+# 1. СИСТЕМИЙН ҮНДСЭН ТОХИРГОО
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'super-brain-secret-key-12345')
 
@@ -23,11 +24,17 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# ⚠️ БАГШ АА: Өөрийн Google Sheet-ийн урт ID-г энд орлуулан тавиарай!
-# Жишээ нь: https://docs.google.com/spreadsheets/d/1xxXXxx_XXxx/edit бол ID нь "1xxXXxx_XXxx" байна.
-GOOGLE_SHEET_ID = os.getenv('GOOGLE_SHEET_ID', 'https://docs.google.com/spreadsheets/d/1HkJZUebgNFtYghS55KUKcCjNVx7A4O2huEvyv1d331o/edit?gid=1505017336#gid=1505017336')
+# ⚠️ УХААЛАГ ХАМГААЛАЛТ: Бүтэн URL эсвэл зөвхөн ID аль нь ч байсан автоматаар цэвэрлэж авна
+RAW_SHEET_INPUT = os.getenv('GOOGLE_SHEET_ID', '1HkJZUebgNFtYghS55KUKcCjNVx7A4O2huEvyv1d331o')
 
-# 2. ӨГӨГДЛИЙН БААЗЫН МОДЕЛУУД (Хүснэгтүүдийн бүтэц)
+# Хэрэв бүтэн холбоос орж ирвэл /d/ болон /edit хоорондох ID-г олж авах логик
+if "docs.google.com/spreadsheets" in RAW_SHEET_INPUT:
+    match = re.search(r'/d/([^/]+)', RAW_SHEET_INPUT)
+    GOOGLE_SHEET_ID = match.group(1) if match else RAW_SHEET_INPUT
+else:
+    GOOGLE_SHEET_ID = RAW_SHEET_INPUT
+
+# 2. ӨГӨГДЛИЙН БААЗЫН МОДЕЛУУД
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ner = db.Column(db.String(150), nullable=False)
@@ -37,19 +44,19 @@ class User(UserMixin, db.Model):
 class Question(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     angi = db.Column(db.String(10), nullable=False)        # 5, 9, 12
-    hicheel = db.Column(db.String(100), nullable=False)    # Математик, Физик, Биологи...
-    sedew = db.Column(db.String(150), nullable=True)       # Сэдвийн нэр
+    hicheel = db.Column(db.String(100), nullable=False)    # Математик, Физик...
+    sedew = db.Column(db.String(150), nullable=True)       # Сэдэв
     asuult_text = db.Column(db.Text, nullable=False)       # Асуулт
     zow_hariult = db.Column(db.Text, nullable=False)       # Зөв хариулт
-    buruu_hariult1 = db.Column(db.Text, nullable=False)    # Буруу хувилбар 1
-    buruu_hariult2 = db.Column(db.Text, nullable=False)    # Буруу хувилбар 2
-    buruu_hariult3 = db.Column(db.Text, nullable=False)    # Буруу хувилбар 3
+    buruu_hariult1 = db.Column(db.Text, nullable=False)    # Буруу 1
+    buruu_hariult2 = db.Column(db.Text, nullable=False)    # Буруу 2
+    buruu_hariult3 = db.Column(db.Text, nullable=False)    # Буруу 3
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# 3. ХЭРЭГЛЭГЧИЙН СИСТЕМ (Нэвтрэх, Бүртгүүлэх, Гарах)
+# 3. ХЭРЭГЛЭГЧИЙН СИСТЕМ
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -91,19 +98,18 @@ def logout():
     flash('Системээс гарлаа.', 'info')
     return redirect(url_for('index'))
 
-# 4. ҮНДСЭН ХУУДАС (Ухаалаг хичээлийн цэс шүүлт)
+# 4. ҮНДСЭН ХУУДАС
 @app.route('/')
 def index():
     subjects = []
     try:
-        # Баазад бэлэн байгаа анги, хичээлийн нэрсийг давхардахгүйгээр унших
         distinct_subs = db.session.query(Question.angi, Question.hicheel).distinct().all()
         subjects = [{"angi": s[0], "hicheel": s[1]} for s in distinct_subs]
     except Exception:
         subjects = []
     return render_template('index.html', subjects=subjects)
 
-# 5. ТЕСТҮҮДИЙН ЛОГИК (Жинхэнэ асуултыг баазаас шүүж, хариултыг холих)
+# 5. ТЕСТҮҮДИЙН ЛОГИК
 @app.route('/get-questions', methods=['GET'])
 @login_required
 def get_questions():
@@ -124,7 +130,6 @@ def get_questions():
     except Exception as e:
         print(f"Баазаас асуулт уншихад алдаа: {e}")
 
-    # Хэрэв бааз бүрэн хоосон байвал сурагчийг гацаахгүй
     if not questions:
         return jsonify({
             "questions": [{
@@ -146,7 +151,7 @@ def get_questions():
             {"text": q.buruu_hariult2, "is_correct": False},
             {"text": q.buruu_hariult3, "is_correct": False}
         ]
-        random.shuffle(choices) # Сурагч бүрт хариултын дараалал солигдоно
+        random.shuffle(choices)
         output.append({
             "id": q.id,
             "asuult": q.asuult_text,
@@ -179,7 +184,6 @@ def submit_test():
         else:
             buruu_too += 1
 
-    # Gemini AI - Шалгалтын үр дүнд тулгуурласан зөвлөмж
     if aldsan_sedwuwd:
         sedew_str = ", ".join(list(aldsan_sedwuwd))
         prompt = (
@@ -204,26 +208,24 @@ def submit_test():
         "ai_recommendation": ai_output
     })
 
-# 6. УХААЛАГ GOOGLE SHEET ИМПОРТЫН СИСТЕМ (Алдааг шууд мэдээлдэг хувилбар)
+# 6. УХААЛАГ GOOGLE SHEET ИМПОРТЫН СИСТЕМ
 @app.route('/import-now', methods=['GET'])
 def import_from_sheet():
-    csv_url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}/export?format=csv&gid=0"
+    csv_url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}/export?format=csv&gid=1505017336"
     try:
         response = requests.get(csv_url)
         if response.status_code != 200:
             return jsonify({
                 "status": "error",
-                "message": f"Google Sheet-ээс өгөгдөл татаж чадсангүй. Сэргээх код: {response.status_code}"
+                "message": f"Google Sheet-ээс өгөгдөл татаж чадсангүй. Сэргээх код: {response.status_code}. Ашигласан ID: {GOOGLE_SHEET_ID}"
             }), 400
             
         csv_data = response.content.decode('utf-8').splitlines()
         reader = csv.DictReader(csv_data)
         
-        # Хүснэгтийн толгойн нэрсийг шалгах зорилгоор хэвлэж харах
         fieldnames = [f.strip().lower() for f in reader.fieldnames] if reader.fieldnames else []
         print(f"Илэрсэн баганын нэрс: {fieldnames}")
 
-        # Хуучин асуултуудыг баазаас устгах
         try:
             db.session.query(Question).delete()
             db.session.commit()
@@ -234,17 +236,14 @@ def import_from_sheet():
         success_count = 0
         skipped_count = 0
         
-        for index, row in enumerate(reader, start=2): # Маягтын 2-р мөрнөөс эхэлнэ
-            # Түлхүүр үгсийг зайг нь авч, жижиг үсгээр унших хамгаалалт
+        for index, row in enumerate(reader, start=2):
             clean_row = {k.strip().lower() if k else '': v for k, v in row.items()}
             
-            # Асуултын текст хайх уян хатан логик
             asuult_txt = clean_row.get('asuult_text') or clean_row.get('asuult') or clean_row.get('асуулт')
             if not asuult_txt:
                 skipped_count += 1
                 continue
                 
-            # Бусад багануудыг унших (Sheet дээрх нэр Монгол эсвэл Англи байсан ч уншина)
             angi = clean_row.get('angi') or clean_row.get('анги') or '12'
             angi = str(angi).replace('-р анги', '').replace('анги', '').strip()
             
@@ -279,14 +278,12 @@ def import_from_sheet():
         
     except Exception as e:
         db.session.rollback()
-        # Дэлгэц дээр яг ямар алдаа гарч 500 зааж байгааг ил тод харуулна
         return jsonify({
             "status": "error", 
             "message": "Импортын явцад дотоод алдаа (500) гарлаа.", 
             "error_details": str(e)
         }), 500
 
-# Систем анх асах үед хүснэгтүүдийг автоматаар үүсгэх ухаалаг алхам
 with app.app_context():
     db.create_all()
 
