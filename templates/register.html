@@ -6,15 +6,16 @@
   <style>
     body { background: #f8fafc; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
     .card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-    input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
+    input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
     button { width: 100%; padding: 12px; background: #7F77DD; color: white; border: none; border-radius: 8px; cursor: pointer; }
   </style>
 </head>
 <body>
   <div class="card">
     <h2>Бүртгүүлэх</h2>
-    <form action="{{ url_for('register') }}" method="POST">
-      <input type="text" name="username" placeholder="Шинэ нэр" required>
+    <form action="{{ url_for('auth.register') }}" method="POST">
+      <input type="text" name="ner" placeholder="Нэр" required>
+      <input type="email" name="email" placeholder="Цахим хаяг" required>
       <input type="password" name="password" placeholder="Нууц үг" required>
       <button type="submit">Бүртгүүлэх</button>
     </form>
