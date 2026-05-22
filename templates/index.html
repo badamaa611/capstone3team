@@ -10,35 +10,98 @@
         :root {
             --genspark-primary: #0066fe;
             --genspark-bg: #f4f7fa;
+            --card-bg: #ffffff;
             --dark-text: #1e293b;
+            --border-color: #e2e8f0;
+            --subject-bg: #f8fafc;
         }
+
+        /* Шөнийн (Dark mode) загвар */
+        [data-theme="dark"] {
+            --genspark-bg: #0f172a;
+            --card-bg: #1e293b;
+            --dark-text: #f8fafc;
+            --border-color: #334155;
+            --subject-bg: #111827;
+        }
+
         body {
             background-color: var(--genspark-bg);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: var(--dark-text);
+            transition: background-color 0.3s, color 0.3s;
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
         }
+
+        /* --- Bubble Эффект --- */
+        .bubbles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(0, 102, 254, 0.04);
+            animation: float-up 12s infinite linear;
+            bottom: -50px;
+        }
+        [data-theme="dark"] .bubble {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        @keyframes float-up {
+            0% { transform: translateY(0) scale(1); opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { transform: translateY(-100vh) scale(1.2); opacity: 0; }
+        }
+
+        /* Навигаци */
         .navbar-genspark {
-            background-color: #ffffff;
-            border-bottom: 1px solid #e2e8f0;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
             padding: 15px 0;
+            transition: background-color 0.3s, border-color 0.3s;
         }
         .brand-logo {
             font-size: 22px;
             font-weight: 700;
             color: var(--genspark-primary);
             text-decoration: none;
-            display: flex;
-            align-items: center;
         }
+
+        /* Өдөр/Шөнө товчлуур */
+        .theme-toggle-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--dark-text);
+            padding: 6px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .theme-toggle-btn:hover {
+            border-color: var(--genspark-primary);
+        }
+
         .hero-genspark {
-            background-color: #ffffff;
-            padding: 50px 0;
-            border-bottom: 1px solid #e2e8f0;
+            background-color: var(--card-bg);
+            padding: 60px 0;
+            border-bottom: 1px solid var(--border-color);
             margin-bottom: 40px;
+            transition: background-color 0.3s, border-color 0.3s;
         }
+
+        /* Ангийн картууд */
         .grade-box {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 25px;
             cursor: pointer;
@@ -56,26 +119,28 @@
             color: var(--genspark-primary);
             margin-bottom: 10px;
         }
+
+        /* Хичээлийн жагсаалт */
         .subject-container {
             display: none;
             margin-top: 20px;
             text-align: left;
-            background: #f8fafc;
+            background: var(--subject-bg);
             border-radius: 8px;
             padding: 15px;
-            border: 1px solid #f1f5f9;
+            border: 1px solid var(--border-color);
         }
         .subject-item {
             display: flex;
             align-items: center;
             padding: 10px 12px;
-            color: #475569;
+            color: var(--dark-text);
             text-decoration: none;
             border-radius: 6px;
             margin-bottom: 6px;
             font-weight: 500;
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
             transition: all 0.15s ease;
         }
         .subject-item:hover {
@@ -90,12 +155,15 @@
         .subject-item:hover i {
             color: #ffffff;
         }
+
+        /* Онцлог карт */
         .feature-genspark {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 24px;
             height: 100%;
+            transition: background-color 0.3s, border-color 0.3s;
         }
         .feature-icon {
             font-size: 24px;
@@ -113,7 +181,6 @@
             font-size: 16px;
             font-weight: 600;
             margin-bottom: 8px;
-            color: var(--dark-text);
         }
         .feature-text {
             font-size: 14px;
@@ -124,17 +191,23 @@
 </head>
 <body>
 
+    <div class="bubbles" id="bubble-container"></div>
+
     <nav class="navbar navbar-expand-lg navbar-genspark">
         <div class="container">
             <a class="brand-logo" href="/">
                 <i class="fa-solid fa-brain me-2"></i>Superbrain Цогц Систем
             </a>
-            <div class="ms-auto">
+            <div class="ms-auto d-flex align-items-center gap-3">
+                <button class="theme-toggle-btn" onclick="toggleTheme()">
+                    <i class="fa-solid fa-moon me-1" id="theme-icon"></i> <span id="theme-text">Шөнө</span>
+                </button>
+
                 {% if current_user.is_authenticated %}
-                    <span class="me-3 style-text">Сайн байна уу, <strong>{{ current_user.ner }}</strong>!</span>
+                    <span>Сайн байна уу, <strong>{{ current_user.ner }}</strong>!</span>
                     <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm px-3">Гарах</a>
                 {% else %}
-                    <a href="{{ url_for('auth.login') }}" class="btn btn-link text-decoration-none text-secondary btn-sm me-2">Нэвтрэх</a>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-link text-decoration-none text-secondary btn-sm">Нэвтрэх</a>
                     <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm px-3" style="background-color: var(--genspark-primary); border: none;">Бүртгүүлэх</a>
                 {% endif %}
             </div>
@@ -143,7 +216,7 @@
 
     <div class="hero-genspark">
         <div class="container text-center">
-            <h1 class="fw-bold mb-3" style="color: var(--dark-text); font-size: 32px;">Улсын Шалгалтын Бэлтгэл Систем</h1>
+            <h1 class="fw-bold mb-3" style="font-size: 32px;">Улсын Шалгалтын Бэлтгэл Систем</h1>
             <p class="text-secondary mx-auto" style="max-width: 600px; font-size: 16px;">Батлагдсан албан ёсны блупринтийн дагуу бэлтгэсэн 5, 9, 12-р ангийн жишиг даалгавар, тестүүд.</p>
         </div>
     </div>
@@ -230,6 +303,7 @@
     </div>
 
     <script>
+        // Ангийн хичээл нээж хаах функц
         function toggleGensparkSubjects(id) {
             var allContainers = document.getElementsByClassName('subject-container');
             for (var i = 0; i < allContainers.length; i++) {
@@ -238,12 +312,52 @@
                 }
             }
             var target = document.getElementById(id);
-            if (target.style.display === 'block') {
-                target.style.display = 'none';
+            target.style.display = (target.style.display === 'block') ? 'none' : 'block';
+        }
+
+        // Өдөр шөнө шилжүүлэх функц
+        function toggleTheme() {
+            const body = document.body;
+            const icon = document.getElementById('theme-icon');
+            const text = document.getElementById('theme-text');
+            
+            if (body.getAttribute('data-theme') === 'dark') {
+                body.removeAttribute('data-theme');
+                icon.className = 'fa-solid fa-moon me-1';
+                text.innerText = 'Шөнө';
+                localStorage.setItem('theme', 'light');
             } else {
-                target.style.display = 'block';
+                body.setAttribute('data-theme', 'dark');
+                icon.className = 'fa-solid fa-sun me-1';
+                text.innerText = 'Өдөр';
+                localStorage.setItem('theme', 'dark');
             }
         }
+
+        // Хэрэглэгчийн өмнөх сонголтыг санах
+        if (localStorage.getItem('theme') === 'dark') {
+            document.body.setAttribute('data-theme', 'dark');
+            document.getElementById('theme-icon').className = 'fa-solid fa-sun me-1';
+            document.getElementById('theme-text').innerText = 'Өдөр';
+        }
+
+        // Bubble эффект үүсгэх автомат ложик
+        function createBubbles() {
+            const container = document.getElementById('bubble-container');
+            const bubbleCount = 15;
+            for (let i = 0; i < bubbleCount; i++) {
+                let bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                let size = Math.random() * 40 + 10;
+                bubble.style.width = size + 'px';
+                bubble.style.height = size + 'px';
+                bubble.style.left = Math.random() * 100 + '%';
+                bubble.style.animationDelay = Math.random() * 8 + 's';
+                bubble.style.animationDuration = Math.random() * 6 + 8 + 's';
+                container.appendChild(bubble);
+            }
+        }
+        createBubbles();
     </script>
 </body>
 </html>
