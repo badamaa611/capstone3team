@@ -54,8 +54,22 @@ def tests():
 def ai_chat():
     return "<h3>AI Зөвлөх системууд (Удахгүй нэмэгдэнэ)</h3><a href='/'>Нүүр хуудас руу буцах</a>"
 
-# 6. Аппликейшнийг эхлүүлэх (Давхардлыг арилгаж цэгцлэв)
+# Blueprint бүртгэсэн хэсгийн яг доор, Routes-ийн дээр ингэж шууд бичиж өгнө:
+from auth import auth as auth_blueprint
+app.register_blueprint(auth_blueprint, url_prefix='/auth')
+
+# --- ЭНД ШИНЭЭР НЭМЖ БАЙНА (Gunicorn-д зориулав) ---
+with app.app_context():
+    db.create_all()  # Апп хаана ч ассан хүснэгтүүдийг заавал шалгаж үүсгэнэ
+# --------------------------------------------------
+
+# 5. Үндсэн хуудаснуудын замууд (Routes)
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+# ... (бусад замууд хэвээрээ үлдэнэ) ...
+
+# 6. Аппликейшнийг локалоор ажиллуулах хэсэг (Одоо маш цэгцтэй болсон)
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()  # Өгөгдлийн санг зөв багануудтай шинээр үүсгэх
     app.run(debug=True)
