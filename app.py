@@ -5,18 +5,14 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, current_user
 from flask_bcrypt import Bcrypt
 
-# 1. Аппликейшн үүсгэх болон тохиргоо
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'super-brain-secret-key-2026'
 
-# Gemini API тохиргоо
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 
-# Өгөгдлийн сангийн замыг тохируулах
 basedir = os.path.abspath(os.path.dirname(__file__))
 instance_path = os.path.join(basedir, 'instance')
-
 if not os.path.exists(instance_path):
     os.makedirs(instance_path, exist_ok=True)
 
@@ -24,7 +20,6 @@ db_path = os.path.join(instance_path, 'user.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# 2. Сангуудыг аппликейшнтэй холбох
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
@@ -32,7 +27,6 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'auth.login'
 login_manager.login_message_category = 'info'
 
-# 3. Өгөгдлийн сангийн Модел
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     ner = db.Column(db.String(150), nullable=False)   
@@ -45,11 +39,9 @@ class User(db.Model, UserMixin):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# 4. Blueprint-ийг импортлож бүртгэх
 from auth import auth as auth_blueprint
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-# Өгөгдлийн сангийн файлыг шалгаж үүсгэх (Устдаг алдаанаас хамгаална)
 with app.app_context():
     if not os.path.exists(db_path):
         db.create_all()
@@ -70,7 +62,6 @@ MOCK_TESTS = {
     ]
 }
 
-# 5. Үндсэн хуудаснууд
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if 'student_stats' not in session:
@@ -94,37 +85,31 @@ def index():
         user_prompt = request.form.get('prompt')
         ai_response = ""
         
-        # 1-р оролдлого: Албан ёсны бүтэн нэршлээр дуудах
         try:
             model = genai.GenerativeModel("models/gemini-1.5-flash")
-            system_instruction = (
-                "Чи бол Super Brain системийн ухаалаг AI туслах байна. "
-                "Хариултыг маш тодорхой, цэгцтэй (bullet points ашиглан) монгол хэлээр хариулна уу."
-            )
+            system_instruction = "Чи бол Super Brain системийн ухаалаг AI туслах байна. Хариултыг маш тодорхой, цэгцтэй монгол хэлээр хариулна уу."
             context = system_instruction + "\n\n"
             for chat in session.get('chat_history', []):
                 context += f"Сурагч: {chat['user']}\nХариулт: {chat['ai']}\n"
             context += f"\nШинэ асуулт: {user_prompt}"
-            
             response = model.generate_content(context)
             ai_response = response.text
-            
-        except Exception as e:
-            # 2-р оролдлого (Fallback): Хэрэв орчин v1beta-аас хамаарч алдаа заавал, шууд нэрээр дуудах
+        except Exception:
             try:
                 model = genai.GenerativeModel("gemini-1.5-flash")
                 response = model.generate_content(user_prompt)
                 ai_response = response.text
             except Exception as inner_e:
-                ai_response = f"Уучлаарай, AI системтэй холбогдоход алдаа гарлаа. Шалтгаан: {str(inner_e)}"
+                ai_response = f"Уучлаарай, AI системтэй холбогдоход алдаа гарлаа: {str(inner_e)}"
         
-        # Түүхийг хадгалах
         history = session.get('chat_history', [])
         history.append({'user': user_prompt, 'ai': ai_response})
         session['chat_history'] = history
         session.modified = True
 
-    return render_template('index.html', chat_history=session['chat_history'], stats=session['student_stats'])
+    # Хамгийн сүүлийн тестийн нарийвчилсан хариуг хуудас руу дамжуулна
+    detailed_results = session.get('last_test_results', None)
+    return render_template('index.html', chat_history=session['chat_history'], stats=session['student_stats'], detailed_results=detailed_results)
 
 @app.route('/take-test/<grade>', methods=['GET', 'POST'])
 def take_test(grade):
@@ -134,31 +119,50 @@ def take_test(grade):
         correct_count = 0
         strong = []
         weak = []
+        test_report = [] # Сонгосон хариултуудыг цуглуулах жагсаалт
         
         for q in questions:
             user_ans = request.form.get(f"q_{q['id']}")
-            if user_ans == q['correct']:
+            is_correct = (user_ans == q['correct'])
+            
+            if is_correct:
                 correct_count += 1
                 strong.append(q['topic'])
             else:
                 weak.append(q['topic'])
+                
+            # Асуулт бүрийн дэлгэрэнгүй тайлан
+            test_report.append({
+                'question': q['q'],
+                'user_answer': user_ans.upper() if user_ans else 'Бөглөөгүй',
+                'correct_answer': q['correct'].upper(),
+                'is_correct': is_correct,
+                'topic': q['topic']
+            })
         
         score_pct = int((correct_count / len(questions)) * 100)
         
+        # Үндсэн дүнгийн хавтанг шинэчлэх
         current_stats = {
             'total_score': f"{score_pct}%",
-            'total_tests': 1,
-            'strong_topics': strong if strong else ['Байхгүй (Бататгах шаардлагатай)'],
-            'weak_topics': weak if weak else ['Байхгүй (Маш сайн)'],
+            'total_tests': session.get('student_stats', {}).get('total_tests', 0) + 1,
+            'strong_topics': list(set(strong)) if strong else ['Байхгүй (Бататгах шаардлагатай)'],
+            'weak_topics': list(set(weak)) if weak else ['Байхгүй (Маш сайн)'],
             'details': [
                 {'subject': 'Математик', 'score': score_pct, 'status': 'Сайн' if score_pct >= 80 else 'Анхаарах', 'color': 'var(--green2)' if score_pct >= 80 else 'var(--purple2)'},
                 {'subject': 'Ерөнхий эрдэм', 'score': score_pct, 'status': 'Дуусгасан', 'color': 'var(--blue2)'}
             ]
         }
+        
         session['student_stats'] = current_stats
+        session['last_test_results'] = {
+            'grade': grade,
+            'score': score_pct,
+            'report': test_report
+        }
         session.modified = True
         
-        flash(f"{grade}-р ангийн тестийг бөглөж дууслаа. Гүйцэтгэл: {score_pct}%", "success")
+        flash(f"{grade}-р ангийн тестийг бөглөж дууслаа.", "success")
         return redirect(url_for('index'))
 
     return render_template('test.html', grade=grade, questions=questions)
@@ -168,8 +172,9 @@ def clear_chat():
     session.pop('chat_history', None)
     return redirect(url_for('index'))
 
-@app.route('/tests')
-def tests():
+@app.route('/clear-results')
+def clear_results():
+    session.pop('last_test_results', None)
     return redirect(url_for('index'))
 
 if __name__ == '__main__':

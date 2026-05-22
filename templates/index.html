@@ -10,22 +10,8 @@
     html{scroll-behavior:smooth}
     body{background:var(--bg,#ffffff);min-height:100vh;position:relative;overflow-x:hidden;transition:background .3s,color .3s;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:16px;line-height:1.7;color:#0f172a;padding-top:76px}
     
-    .bubbles {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 0;
-      pointer-events: none;
-    }
-    .bubble {
-      position: absolute;
-      border-radius: 50%;
-      background: rgba(57, 138, 221, 0.15);
-      animation: float-up 12s infinite linear;
-      bottom: -100px;
-    }
+    .bubbles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+    .bubble { position: absolute; border-radius: 50%; background: rgba(57, 138, 221, 0.15); animation: float-up 12s infinite linear; bottom: -100px; }
     @keyframes float-up {
       0% { transform: translateY(0) scale(0.8); opacity: 0; }
       20% { opacity: 0.6; }
@@ -43,7 +29,7 @@
     }
 
     .container { position: relative; z-index: 10; max-width:1200px; margin:0 auto; padding:0 24px }
-    .nav{display:flex;justify-content:space-between;align-items:center;padding:15px 30px;border-bottom:1px solid rgba(15,23,42,0.08);background:rgba(255,255,255,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);position:fixed;top:0;left:0;right:0;width:100%;z-index:150;box-shadow:0 10px 30px rgba(15,23,42,0.06)}
+    .nav{display:flex;justify-content:space-between;align-items:center;padding:15px 30px;border-bottom:1px solid rgba(15,23,42,0.08);background:rgba(255,255,255,0.92);backdrop-filter:blur(20px);position:fixed;top:0;left:0;right:0;width:100%;z-index:150;box-shadow:0 10px 30px rgba(15,23,42,0.06)}
     .logo-a{display:flex;align-items:center;gap:10px;text-decoration:none}
     .logo-box{width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#378ADD,#7F77DD);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;box-shadow:0 4px 18px rgba(55,138,221,0.22)}
     .logo-name{font-size:18px;font-weight:800;color:var(--text);letter-spacing:.03em;text-transform:uppercase}
@@ -81,6 +67,11 @@
     .stat-table { width: 100%; border-collapse: collapse; margin-top: 8px }
     .stat-table th, .stat-table td { padding: 10px; text-align: left; font-size: 14px; border-bottom: 1px solid var(--border) }
 
+    /* НАРИЙВЧИЛСАН ТЕСТИЙН СТИЛЬ */
+    .report-item { padding: 12px; border-radius: 10px; margin-bottom: 10px; border-left: 4px solid var(--border); background: var(--bg2) }
+    .report-success { border-left-color: var(--green2); background: var(--green1) }
+    .report-danger { border-left-color: var(--purple2); background: var(--purple1) }
+
     .grade-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;max-width:840px;margin:0 auto 2.5rem}
     .gc{border-radius:20px;padding:2.5rem 1.5rem;cursor:pointer;text-align:center;transition:all .25s;border:1px solid var(--border);min-height:160px;display:flex;flex-direction:column;justify-content:center;box-shadow:0 4px 15px var(--shadow)}
     .g5{background:linear-gradient(145deg,var(--surface),var(--blue1))}
@@ -113,7 +104,6 @@
       </div>
     </a>
     <div class="nr">
-      <a href="/tests" class="nl">Тестүүд</a>
       <a href="/" class="nl" style="color:var(--blue2); font-weight:600;"><i class="ti ti-robot"></i> AI Зөвлөх</a>
       {% if current_user.is_authenticated %}
         <span style="font-size:13px;color:var(--text2);font-weight:600;">{{ current_user.ner }}</span>
@@ -153,11 +143,36 @@
         </div>
       </div>
 
-      {% if current_user.is_authenticated %}
+      {% if current_user.is_authenticated or stats.total_tests > 0 %}
         <div class="dashboard-section">
+          
+          {% if detailed_results %}
+            <div class="dash-card" style="margin-bottom: 20px; border-top: 4px solid var(--blue2);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <div class="dash-title" style="color: var(--blue3); font-size:16px; margin:0;">
+                  <i class="ti ti-report-analytics"></i> Сүүлийн шалгалтын нарийвчилсан тайлан ({{ detailed_results.grade }}-р анги)
+                </div>
+                <a href="/clear-results" style="font-size:12px; color:var(--text3); text-decoration:none;"><i class="ti ti-refresh"></i> Арилгах</a>
+              </div>
+              
+              <div>
+                {% for item in detailed_results.report %}
+                  <div class="report-item {% if item.is_correct %}report-success{% else %}report-danger{% endif %}">
+                    <p style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">{{ loop.index }}. {{ item.question }}</p>
+                    <div style="display: flex; gap: 15px; font-size: 13px; color: var(--text2);">
+                      <span>Сэдэв: <b>{{ item.topic }}</b></span>
+                      <span>Таны хариулт: <b style="color: {% if item.is_correct %}var(--green2){% else %}var(--purple2){% endif %};">{{ item.user_answer }}</b></span>
+                      <span>Зөв хариулт: <b style="color: var(--green2);">{{ item.correct_answer }}</b></span>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+
           <div class="dash-grid">
             <div class="dash-card" style="border-left: 4px solid var(--green2);">
-              <div class="dash-title" style="color: var(--green2);"><i class="ti ti-circle-check"></i> Миний сайн сэдэв, хичээлүүд</div>
+              <div class="dash-title" style="color: var(--green2);"><i class="ti ti-circle-check"></i> Сайн эзэмшсэн сэдэвүүд</div>
               <ul class="topic-list">
                 {% for topic in stats.strong_topics %}
                   <li><i class="ti ti-check" style="color: var(--green2);"></i> {{ topic }}</li>
@@ -165,7 +180,7 @@
               </ul>
             </div>
             <div class="dash-card" style="border-left: 4px solid var(--purple2);">
-              <div class="dash-title" style="color: var(--purple2);"><i class="ti ti-circle-x"></i> Анхаарах (Сул) сэдэв, хичээлүүд</div>
+              <div class="dash-title" style="color: var(--purple2);"><i class="ti ti-circle-x"></i> Анхаарах (Сул) сэдэвүүд</div>
               <ul class="topic-list">
                 {% for topic in stats.weak_topics %}
                   <li><i class="ti ti-alert-circle" style="color: var(--purple2);"></i> {{ topic }}</li>
@@ -175,7 +190,7 @@
           </div>
 
           <div class="dash-card">
-            <div class="dash-title"><i class="ti ti-chart-bar"></i> Сэдвийн нарийвчилсан үр дүн (Нийт гүйцэтгэл: {{ stats.total_score }})</div>
+            <div class="dash-title"><i class="ti ti-chart-bar"></i> Ерөнхий үр дүн (Нийт гүйцэтгэл: {{ stats.total_score }} / Шалгалт: {{ stats.total_tests }})</div>
             <table class="stat-table">
               <thead>
                 <tr>
