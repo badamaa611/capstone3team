@@ -119,7 +119,7 @@
     <a href="/ai-chat" class="nl" style="color:var(--blue2); font-weight:600;"><i class="ti ti-robot"></i> AI Зөвлөх</a>
     {% if current_user.is_authenticated %}
       <span style="font-size:13px;color:var(--text2);font-weight:600;margin-left:8px;">{{ current_user.ner }}</span>
-      <a href="{{ url_for('logout') }}" class="nbtn" style="margin-left:8px;">Гарах</a>
+      <a href="{{ url_for('auth.login') }}" class="nbtn" style="margin-left:8px;">Гарах</a>
     {% else %}
       <a href="{{ url_for('auth.login') }}" class="nbtn">Нэвтрэх</a>
     {% endif %}
