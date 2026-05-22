@@ -1,88 +1,164 @@
-﻿from flask import Flask, render_template, request, redirect, url_for, flash
+﻿import os
+import google.generativeai as genai
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_login import LoginManager, UserMixin, current_user
 from flask_bcrypt import Bcrypt
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'super-brain-2026-secure'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///superbrain.db'
+app.config['SECRET_KEY'] = 'super-brain-secret-key-2026'
+
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+genai.configure(api_key=GEMINI_API_KEY)
+
+basedir = os.path.abspath(os.path.dirname(__file__))
+instance_path = os.path.join(basedir, 'instance')
+if not os.path.exists(instance_path):
+    os.makedirs(instance_path, exist_ok=True)
+
+db_path = os.path.join(instance_path, 'user.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
+
 login_manager = LoginManager(app)
-login_manager.login_view = 'login'
+login_manager.login_view = 'auth.login'
+login_manager.login_message_category = 'info'
 
-class User(UserMixin, db.Model):
+class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
-    ner = db.Column(db.String(150), nullable=False)
+    ner = db.Column(db.String(150), nullable=False)   
     email = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(50), default='suragch')
-    grade = db.Column(db.String(20))
-    chats = db.relationship('ChatHistory', backref='author', lazy=True)
-
-class ChatHistory(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    prompt = db.Column(db.Text, nullable=False)
-    response = db.Column(db.Text, nullable=False)
+    password = db.Column(db.String(256), nullable=False)
+    role = db.Column(db.String(50), nullable=False, default='suragch') 
+    grade = db.Column(db.String(20), nullable=True)                  
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+from auth import auth as auth_blueprint
+app.register_blueprint(auth_blueprint, url_prefix='/auth')
+
 with app.app_context():
-    db.create_all()
+    if not os.path.exists(db_path):
+        db.create_all()
+
+# Үзүүлэн тестийн өгөгдөл (Blueprint стандартын дагуу)
+MOCK_TESTS = {
+    '5': [
+        {'id': 1, 'q': 'Хоёр тооны нийлбэр 45, харьцаа нь 2:3 бол их тоог ол.', 'a': '27', 'b': '18', 'c': '25', 'd': '30', 'correct': 'a', 'topic': 'Математик (Харьцаа)'},
+        {'id': 2, 'q': 'Өгүүлбэрийг зөв залгалаар холбоно уу: "Би ном ... уншив."', 'a': 'ыг', 'b': 'ийг', 'c': 'ы', 'd': 'ийн', 'correct': 'b', 'topic': 'Монгол хэл (Тийн ялгал)'}
+    ],
+    '9': [
+        {'id': 1, 'q': 'x² - 5x + 6 = 0 тэгшитгэлийн шийдүүдийг ол.', 'a': '2 ба 3', 'b': '-2 ба -3', 'c': '1 ba 6', 'd': '0 ба 5', 'correct': 'a', 'topic': 'Математик (Тэгшитгэл)'},
+        {'id': 2, 'q': 'Нэгэн жигд хөдөлгөөний хурд v = 10 м/с, хугацаа t = 5 с бол явсан замыг ол.', 'a': '2 м', 'b': '50 м', 'c': '15 м', 'd': '0.5 м', 'correct': 'b', 'topic': 'Физик (Механик хөдөлгөөн)'}
+    ],
+    '12': [
+        {'id': 1, 'q': 'f(x) = x³ - 3x функцийн уламжлалыг ол.', 'a': '3x² - 3', 'b': 'x² - 3', 'c': '3x²', 'd': '3x - 3', 'correct': 'a', 'topic': 'Математик (Уламжлал)'},
+        {'id': 2, 'q': 'Which sentence is in Present Perfect tense?', 'a': 'I am eating.', 'b': 'I ate yesterday.', 'c': 'I have eaten.', 'd': 'I will eat.', 'correct': 'c', 'topic': 'Англи хэл (Үйл үг)'}
+    ]
+}
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    chats = []
-    if request.method == 'POST':
-        prompt = request.form.get('prompt')
-        response = "Энэ бол AI-ын хариулт" 
-        if current_user.is_authenticated:
-            new_chat = ChatHistory(user_id=current_user.id, prompt=prompt, response=response)
-            db.session.add(new_chat)
-            db.session.commit()
-            chats = ChatHistory.query.filter_by(user_id=current_user.id).all()
-        else:
-            chats = [{'prompt': prompt, 'response': response}]
-    elif current_user.is_authenticated:
-        chats = ChatHistory.query.filter_by(user_id=current_user.id).all()
-    return render_template('index.html', chats=chats)
+    # Session-оос сурагчийн бодит тестийн үр дүнг унших, байхгүй бол анхны утга
+    if 'student_stats' not in session:
+        session['student_stats'] = {
+            'total_score': 'Хүлээгдэж буй',
+            'total_tests': 0,
+            'strong_topics': ['Одоогоор тест ажиллаагүй байна'],
+            'weak_topics': ['Одоогоор тест ажиллаагүй байна'],
+            'details': [
+                {'subject': 'Математик', 'score': 0, 'status': 'Идэвхгүй', 'color': 'var(--text3)'},
+                {'subject': 'Англи хэл', 'score': 0, 'status': 'Идэвхгүй', 'color': 'var(--text3)'},
+                {'subject': 'Физик', 'score': 0, 'status': 'Идэвхгүй', 'color': 'var(--text3)'},
+                {'subject': 'Монгол хэл', 'score': 0, 'status': 'Идэвхгүй', 'color': 'var(--text3)'}
+            ]
+        }
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        user = User.query.filter_by(email=request.form.get('email')).first()
-        if user and bcrypt.check_password_hash(user.password, request.form.get('password')):
-            login_user(user)
-            return redirect(url_for('index'))
-        flash('И-мэйл эсвэл нууц үг буруу!', 'danger')
-    return render_template('login.html')
+    if 'chat_history' not in session:
+        session['chat_history'] = []
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
+    if request.method == 'POST' and 'prompt' in request.form:
+        user_prompt = request.form.get('prompt')
+        try:
+            model = genai.GenerativeModel(model_name="gemini-1.5-flash")
+            system_instruction = (
+                "Чи бол Super Brain системийн ухаалаг AI туслах байна. "
+                "Хариултыг маш тодорхой, цэгцтэй (bullet points ашиглан) монгол хэлээр хариулна уу."
+            )
+            context = system_instruction + "\n\n"
+            for chat in session['chat_history']:
+                context += f"Сурагч: {chat['user']}\nБагш: {chat['ai']}\n"
+            context += f"\nШинэ асуулт: {user_prompt}"
+            
+            response = model.generate_content(context)
+            ai_response = response.text
+            
+            history = session['chat_history']
+            history.append({'user': user_prompt, 'ai': ai_response})
+            session['chat_history'] = history
+            session.modified = True
+        except Exception as e:
+            ai_response = f"Уучлаарай, AI системтэй холбогдоход алдаа гарлаа: {str(e)}"
+            history = session['chat_history']
+            history.append({'user': user_prompt, 'ai': ai_response})
+            session['chat_history'] = history
+            session.modified = True
+
+    return render_template('index.html', chat_history=session['chat_history'], stats=session['student_stats'])
+
+# 🔥 ТЕСТ АЖИЛЛУУЛАХ ШИНЭ СЕКЦ
+@app.route('/take-test/<grade>', methods=['GET', 'POST'])
+def take_test(grade):
+    questions = MOCK_TESTS.get(grade, [])
+    
     if request.method == 'POST':
-        email = request.form.get('email')
-        if User.query.filter_by(email=email).first():
-            flash('Энэ и-мэйл бүртгэлтэй байна!', 'danger')
-            return redirect(url_for('register'))
+        correct_count = 0
+        strong = []
+        weak = []
         
-        hashed_pw = bcrypt.generate_password_hash(request.form.get('password')).decode('utf-8')
-        new_user = User(ner=request.form.get('ner'), email=email, 
-                        password=hashed_pw, role=request.form.get('role'), 
-                        grade=request.form.get('grade'))
-        db.session.add(new_user)
-        db.session.commit()
-        return redirect(url_for('login'))
-    return render_template('register.html')
+        for q in questions:
+            user_ans = request.form.get(f"q_{q['id']}")
+            if user_ans == q['correct']:
+                correct_count += 1
+                strong.append(q['topic'])
+            else:
+                weak.append(q['topic'])
+        
+        # Дүн тооцох болон Сэдвийн задаргааг шинэчлэх ложик
+        score_pct = int((correct_count / len(questions)) * 100)
+        
+        # Одоогийн дүнгийн бүтцийг шинэчлэх
+        current_stats = {
+            'total_score': f"{score_pct}%",
+            'total_tests': 1,
+            'strong_topics': strong if strong else ['Байхгүй (Бататгах шаардлагатай)'],
+            'weak_topics': weak if weak else ['Байхгүй (Маш сайн)'],
+            'details': [
+                {'subject': 'Математик', 'score': score_pct, 'status': 'Сайн' if score_pct >= 80 else 'Анхаарах', 'color': 'var(--green2)' if score_pct >= 80 else 'var(--purple2)'},
+                {'subject': 'Ерөнхий эрдэм', 'score': score_pct, 'status': 'Дуусгасан', 'color': 'var(--blue2)'}
+            ]
+        }
+        session['student_stats'] = current_stats
+        session.modified = True
+        
+        flash(f"{grade}-р ангийн тестийг амжилттай бөглөж дууслаа. Гүйцэтгэл: {score_pct}%", "success")
+        return redirect(url_for('index'))
 
-@app.route('/logout')
-def logout():
-    logout_user()
+    return render_template('test.html', grade=grade, questions=questions)
+
+@app.route('/clear-chat')
+def clear_chat():
+    session.pop('chat_history', None)
+    return redirect(url_for('index'))
+
+@app.route('/tests')
+def tests():
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)

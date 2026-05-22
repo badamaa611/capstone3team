@@ -1,107 +1,164 @@
-<!DOCTYPE html>
-<html lang="mn">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SUPER BRAIN - Цогц Систем</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-  <style>
-    /* Үндсэн тохиргоо */
-    *{box-sizing:border-box;margin:0;padding:0}
-    html{scroll-behavior:smooth}
+import os
+import google.generativeai as genai
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, current_user
+from flask_bcrypt import Bcrypt
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'super-brain-secret-key-2026'
+
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+genai.configure(api_key=GEMINI_API_KEY)
+
+basedir = os.path.abspath(os.path.dirname(__file__))
+instance_path = os.path.join(basedir, 'instance')
+if not os.path.exists(instance_path):
+    os.makedirs(instance_path, exist_ok=True)
+
+db_path = os.path.join(instance_path, 'user.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+bcrypt = Bcrypt(app)
+
+login_manager = LoginManager(app)
+login_manager.login_view = 'auth.login'
+login_manager.login_message_category = 'info'
+
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    ner = db.Column(db.String(150), nullable=False)   
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(256), nullable=False)
+    role = db.Column(db.String(50), nullable=False, default='suragch') 
+    grade = db.Column(db.String(20), nullable=True)                  
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+from auth import auth as auth_blueprint
+app.register_blueprint(auth_blueprint, url_prefix='/auth')
+
+with app.app_context():
+    if not os.path.exists(db_path):
+        db.create_all()
+
+# Үзүүлэн тестийн өгөгдөл (Blueprint стандартын дагуу)
+MOCK_TESTS = {
+    '5': [
+        {'id': 1, 'q': 'Хоёр тооны нийлбэр 45, харьцаа нь 2:3 бол их тоог ол.', 'a': '27', 'b': '18', 'c': '25', 'd': '30', 'correct': 'a', 'topic': 'Математик (Харьцаа)'},
+        {'id': 2, 'q': 'Өгүүлбэрийг зөв залгалаар холбоно уу: "Би ном ... уншив."', 'a': 'ыг', 'b': 'ийг', 'c': 'ы', 'd': 'ийн', 'correct': 'b', 'topic': 'Монгол хэл (Тийн ялгал)'}
+    ],
+    '9': [
+        {'id': 1, 'q': 'x² - 5x + 6 = 0 тэгшитгэлийн шийдүүдийг ол.', 'a': '2 ба 3', 'b': '-2 ба -3', 'c': '1 ba 6', 'd': '0 ба 5', 'correct': 'a', 'topic': 'Математик (Тэгшитгэл)'},
+        {'id': 2, 'q': 'Нэгэн жигд хөдөлгөөний хурд v = 10 м/с, хугацаа t = 5 с бол явсан замыг ол.', 'a': '2 м', 'b': '50 м', 'c': '15 м', 'd': '0.5 м', 'correct': 'b', 'topic': 'Физик (Механик хөдөлгөөн)'}
+    ],
+    '12': [
+        {'id': 1, 'q': 'f(x) = x³ - 3x функцийн уламжлалыг ол.', 'a': '3x² - 3', 'b': 'x² - 3', 'c': '3x²', 'd': '3x - 3', 'correct': 'a', 'topic': 'Математик (Уламжлал)'},
+        {'id': 2, 'q': 'Which sentence is in Present Perfect tense?', 'a': 'I am eating.', 'b': 'I ate yesterday.', 'c': 'I have eaten.', 'd': 'I will eat.', 'correct': 'c', 'topic': 'Англи хэл (Үйл үг)'}
+    ]
+}
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    # Session-оос сурагчийн бодит тестийн үр дүнг унших, байхгүй бол анхны утга
+    if 'student_stats' not in session:
+        session['student_stats'] = {
+            'total_score': 'Хүлээгдэж буй',
+            'total_tests': 0,
+            'strong_topics': ['Одоогоор тест ажиллаагүй байна'],
+            'weak_topics': ['Одоогоор тест ажиллаагүй байна'],
+            'details': [
+                {'subject': 'Математик', 'score': 0, 'status': 'Идэвхгүй', 'color': 'var(--text3)'},
+                {'subject': 'Англи хэл', 'score': 0, 'status': 'Идэвхгүй', 'color': 'var(--text3)'},
+                {'subject': 'Физик', 'score': 0, 'status': 'Идэвхгүй', 'color': 'var(--text3)'},
+                {'subject': 'Монгол хэл', 'score': 0, 'status': 'Идэвхгүй', 'color': 'var(--text3)'}
+            ]
+        }
+
+    if 'chat_history' not in session:
+        session['chat_history'] = []
+
+    if request.method == 'POST' and 'prompt' in request.form:
+        user_prompt = request.form.get('prompt')
+        try:
+            model = genai.GenerativeModel(model_name="gemini-1.5-flash")
+            system_instruction = (
+                "Чи бол Super Brain системийн ухаалаг AI туслах байна. "
+                "Хариултыг маш тодорхой, цэгцтэй (bullet points ашиглан) монгол хэлээр хариулна уу."
+            )
+            context = system_instruction + "\n\n"
+            for chat in session['chat_history']:
+                context += f"Сурагч: {chat['user']}\nБагш: {chat['ai']}\n"
+            context += f"\nШинэ асуулт: {user_prompt}"
+            
+            response = model.generate_content(context)
+            ai_response = response.text
+            
+            history = session['chat_history']
+            history.append({'user': user_prompt, 'ai': ai_response})
+            session['chat_history'] = history
+            session.modified = True
+        except Exception as e:
+            ai_response = f"Уучлаарай, AI системтэй холбогдоход алдаа гарлаа: {str(e)}"
+            history = session['chat_history']
+            history.append({'user': user_prompt, 'ai': ai_response})
+            session['chat_history'] = history
+            session.modified = True
+
+    return render_template('index.html', chat_history=session['chat_history'], stats=session['student_stats'])
+
+# 🔥 ТЕСТ АЖИЛЛУУЛАХ ШИНЭ СЕКЦ
+@app.route('/take-test/<grade>', methods=['GET', 'POST'])
+def take_test(grade):
+    questions = MOCK_TESTS.get(grade, [])
     
-    body{
-      background: #ffffff;
-      min-height:100vh;
-      position:relative;
-      overflow-x:hidden;
-      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-      font-size:16px;
-      line-height:1.7;
-      color:#0f172a;
-      padding-top:76px;
-      /* Bubble эффект: style блокийн дотор зөв байршууллаа */
-      background-image: 
-        radial-gradient(circle at 15% 50%, rgba(55, 138, 221, 0.15), transparent 25%),
-        radial-gradient(circle at 85% 30%, rgba(127, 119, 221, 0.15), transparent 25%),
-        radial-gradient(circle at 50% 80%, rgba(29, 158, 117, 0.1), transparent 20%),
-        radial-gradient(circle at 10% 10%, rgba(55, 138, 221, 0.08), transparent 15%),
-        radial-gradient(circle at 90% 90%, rgba(127, 119, 221, 0.08), transparent 15%);
-      background-attachment: fixed;
-    }
-    
-    :root{
-      --bg:#ffffff;--bg2:#f8fafc;--surface:#ffffff;--border:#e2e8f0;
-      --text:#0f172a;--text2:#64748b;--text3:#94a3b8;
-      --blue1:#E6F1FB;--blue2:#378ADD;--blue3:#0C447C;
-      --green1:#E1F5EE;--green2:#1D9E75;--green3:#085041;
-      --purple1:#EEEDFE;--purple2:#7F77DD;--purple3:#3C3489;
-      --shadow:rgba(0,0,0,0.06);
-    }
+    if request.method == 'POST':
+        correct_count = 0
+        strong = []
+        weak = []
+        
+        for q in questions:
+            user_ans = request.form.get(f"q_{q['id']}")
+            if user_ans == q['correct']:
+                correct_count += 1
+                strong.append(q['topic'])
+            else:
+                weak.append(q['topic'])
+        
+        # Дүн тооцох болон Сэдвийн задаргааг шинэчлэх ложик
+        score_pct = int((correct_count / len(questions)) * 100)
+        
+        # Одоогийн дүнгийн бүтцийг шинэчлэх
+        current_stats = {
+            'total_score': f"{score_pct}%",
+            'total_tests': 1,
+            'strong_topics': strong if strong else ['Байхгүй (Бататгах шаардлагатай)'],
+            'weak_topics': weak if weak else ['Байхгүй (Маш сайн)'],
+            'details': [
+                {'subject': 'Математик', 'score': score_pct, 'status': 'Сайн' if score_pct >= 80 else 'Анхаарах', 'color': 'var(--green2)' if score_pct >= 80 else 'var(--purple2)'},
+                {'subject': 'Ерөнхий эрдэм', 'score': score_pct, 'status': 'Дуусгасан', 'color': 'var(--blue2)'}
+            ]
+        }
+        session['student_stats'] = current_stats
+        session.modified = True
+        
+        flash(f"{grade}-р ангийн тестийг амжилттай бөглөж дууслаа. Гүйцэтгэл: {score_pct}%", "success")
+        return redirect(url_for('index'))
 
-    /* Навигацийн хэсэг */
-    .nav{display:flex;justify-content:space-between;align-items:center;padding:15px 30px;border-bottom:1px solid rgba(15,23,42,0.08);background:rgba(255,255,255,0.92);backdrop-filter:blur(20px);position:fixed;top:0;width:100%;z-index:150;box-shadow:0 10px 30px rgba(15,23,42,0.06)}
-    .logo-a{display:flex;align-items:center;gap:10px;text-decoration:none}
-    .logo-box{width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#378ADD,#7F77DD);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700}
-    .logo-name{font-size:18px;font-weight:800;color:var(--text)}
-    .logo-tag{font-size:11px;color:var(--text3)}
-    
-    /* Бусад элементүүд */
-    .nbtn{padding:8px 16px;border-radius:10px;background:linear-gradient(135deg,#378ADD,#7F77DD);color:#fff;text-decoration:none;font-weight:600;font-size:13px}
-    .container{max-width:1200px;margin:0 auto;padding:0 24px}
-    .hero{padding:2.5rem 0;text-align:center}
-    .hh{font-size:3rem;font-weight:800;margin-bottom:1.5rem}
-    .hh .gr{background:linear-gradient(135deg,var(--blue2),var(--purple2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-    
-    .ai-search-box{background:white;border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 8px 36px rgba(0,0,0,0.05);max-width:760px;margin:0 auto 2.5rem}
-    .ai-input-row{display:flex;gap:10px;align-items:center}
-    .ai-input{flex:1;border:none;outline:none;padding:5px}
-    .ai-send{padding:10px 20px;border-radius:10px;background:var(--blue2);color:white;border:none;cursor:pointer}
-    
-    .grade-row{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:840px;margin:0 auto}
-    .gc{border-radius:20px;padding:2.5rem;border:1px solid var(--border);background:white;transition:0.3s}
-    .gc:hover{transform:translateY(-8px);box-shadow:0 10px 20px rgba(0,0,0,0.1)}
-  </style>
-</head>
-<body>
+    return render_template('test.html', grade=grade, questions=questions)
 
-<nav class="nav">
-  <a class="logo-a" href="/">
-    <div class="logo-box">SB</div>
-    <div>
-      <span class="logo-name">Super Brain</span>
-      <span class="logo-tag">Цогц Систем</span>
-    </div>
-  </a>
-  <div class="nr">
-    {% if current_user.is_authenticated %}
-      <span style="margin-right:15px; font-weight:600;">{{ current_user.ner }}</span>
-      <a href="{{ url_for('logout') }}" class="nbtn">Гарах</a>
-    {% else %}
-      <a href="{{ url_for('login') }}" class="nbtn">Нэвтрэх</a>
-    {% endif %}
-  </div>
-</nav>
+@app.route('/clear-chat')
+def clear_chat():
+    session.pop('chat_history', None)
+    return redirect(url_for('index'))
 
-<div class="container">
-  <div class="hero">
-    <h1 class="hh">Мэдлэгээ <span class="gr">Шалгаж</span>,<br>Ирээдүйгээ Цогцлон Бүтээ</h1>
+@app.route('/tests')
+def tests():
+    return redirect(url_for('index'))
 
-    <div class="ai-search-box">
-      <form action="/" method="POST" class="ai-input-row">
-        <i class="ti ti-sparkles" style="color:var(--blue2)"></i>
-        <input class="ai-input" name="prompt" placeholder="Хичээл эсвэл сэдэв хайх..." required />
-        <button type="submit" class="ai-send">↑</button>
-      </form>
-    </div>
-
-    <div class="grade-row">
-      <div class="gc"><span style="color:var(--blue2); font-size:3rem; font-weight:bold;">5</span><br>Дугаар анги</div>
-      <div class="gc"><span style="color:var(--green2); font-size:3rem; font-weight:bold;">9</span><br>Дугаар анги</div>
-      <div class="gc"><span style="color:var(--purple2); font-size:3rem; font-weight:bold;">12</span><br>Дугаар анги</div>
-    </div>
-  </div>
-</div>
-
-</body>
-</html>
+if __name__ == '__main__':
+    app.run(debug=True)
