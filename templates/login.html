@@ -1,43 +1,41 @@
-<!DOCTYPE html>
-<html lang="mn">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Нэвтрэх</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-</head>
-<body>
-  <nav class="navbar">
-    <div class="nav-brand">📚 Шалгалтын Бэлтгэл</div>
-  </nav>
+{% extends "base.html" %}
+{% block title %}Нэвтрэх - Super Brain{% endblock %}
 
-  <main class="container">
-    <div class="auth-box">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for cat, msg in messages %}
-          <div class="alert alert-{{ cat }}">{{ msg }}</div>
-        {% endfor %}
-      {% endwith %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="auth-card p-4 p-sm-5">
+            <h2 class="text-center mb-4"><i class="fa-solid fa-right-to-bracket text-primary me-2"></i>Нэвтрэх</h2>
+            
+            <form method="POST" action="{{ url_for('auth.login') }}">
+                <div class="mb-3">
+                    <label class="form-label">И-мэйл хаяг</label>
+                    <input type="email" name="email" class="form-control" required placeholder="email@example.com">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label">Нууц үг</label>
+                    <input type="password" name="password" class="form-control" required placeholder="Нууц үгээ оруулна уу">
+                </div>
+                
+                <button type="submit" class="btn btn-primary w-100 py-2.5 mb-3">Нэвтрэх</button>
+                
+                <div class="position-relative my-4 text-center">
+                    <hr class="text-muted">
+                    <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted small">ЭСВЭЛ</span>
+                </div>
 
-      <h2>Нэвтрэх</h2>
-      <form method="POST" action="{{ url_for('auth.login') }}">
-        <div class="form-group">
-          <label>И-мэйл</label>
-          <input type="email" name="email" required placeholder="email@example.com">
+                <a href="{{ url_for('auth.login') }}" class="btn btn-outline-secondary w-100 py-2 d-flex align-items-center justify-content-center">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google" style="width:18px; margin-right:10px;">
+                    Google хаягаар нэвтрэх
+                </a>
+            </form>
+
+            <div class="text-center mt-4">
+                <span class="text-muted">Бүртгэл байхгүй юу?</span> 
+                <a href="{{ url_for('auth.register') }}" class="text-decoration-none fw-bold ms-1">Бүртгүүлэх</a>
+            </div>
         </div>
-        <div class="form-group">
-          <label>Нууц үг</label>
-          <input type="password" name="nuuts_ug" required placeholder="Нууц үг">
-        </div>
-        <button type="submit" class="btn-primary">Нэвтрэх</button>
-      </form>
-
-      <p style="text-align:center; margin-top:1rem">
-        Бүртгэл байхгүй юу? 
-        <a href="{{ url_for('auth.register') }}">Бүртгүүлэх</a>
-      </p>
     </div>
-  </main>
-</body>
-</html>
-        <a href="{{ url_for('auth.login') }}" class="btn-google">
+</div>
+{% endblock %}

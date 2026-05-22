@@ -27,7 +27,6 @@ login_manager.login_view = 'login'
 # ⚠️ УХААЛАГ ХАМГААЛАЛТ: Бүтэн URL эсвэл зөвхөн ID аль нь ч байсан автоматаар цэвэрлэж авна
 RAW_SHEET_INPUT = os.getenv('GOOGLE_SHEET_ID', '1RqJo5t0_iC0fr5bOEfCkNrAjBlmFuAe2BOZL6ewjA_A')
 
-# Хэрэв бүтэн холбоос орж ирвэл /d/ болон /edit хоорондох ID-г олж авах логик
 if "docs.google.com/spreadsheets" in RAW_SHEET_INPUT:
     match = re.search(r'/d/([^/]+)', RAW_SHEET_INPUT)
     GOOGLE_SHEET_ID = match.group(1) if match else RAW_SHEET_INPUT
@@ -208,23 +207,23 @@ def submit_test():
         "ai_recommendation": ai_output
     })
 
-# 6. УХААЛАГ GOOGLE SHEET ИМПОРТЫН СИСТЕМ
+# 6. УХААЛАГ GOOGLE SHEET ИМПОРТЫН СИСТЕМ (Автомат нүүр танигч хувилбар)
 @app.route('/import-now', methods=['GET'])
 def import_from_sheet():
-    csv_url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}/export?format=csv&gid=1505017336"
+    # Тэмдэглэл: Багш аа, энд хуучин gid кодыг устгаж, үндсэн хуудаснаас шууд татдаг болгов.
+    csv_url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}/export?format=csv"
     try:
         response = requests.get(csv_url)
         if response.status_code != 200:
             return jsonify({
                 "status": "error",
-                "message": f"Google Sheet-ээс өгөгдөл татаж чадсангүй. Сэргээх код: {response.status_code}. Ашигласан ID: {GOOGLE_SHEET_ID}"
+                "message": f"Google Sheet-ээс өгөгдөл татаж чадсангүй. Сэргээх код: {response.status_code}."
             }), 400
             
         csv_data = response.content.decode('utf-8').splitlines()
         reader = csv.DictReader(csv_data)
         
         fieldnames = [f.strip().lower() for f in reader.fieldnames] if reader.fieldnames else []
-        print(f"Илэрсэн баганын нэрс: {fieldnames}")
 
         try:
             db.session.query(Question).delete()

@@ -1,57 +1,49 @@
-<!DOCTYPE html>
-<html lang="mn">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Бүртгүүлэх</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-</head>
-<body>
-  <nav class="navbar">
-    <div class="nav-brand">📚 Шалгалтын Бэлтгэл</div>
-  </nav>
+{% extends "base.html" %}
+{% block title %}Бүртгүүлэх - Super Brain{% endblock %}
 
-  <main class="container">
-    <div class="auth-box">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for cat, msg in messages %}
-          <div class="alert alert-{{ cat }}">{{ msg }}</div>
-        {% endfor %}
-      {% endwith %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="auth-card p-4 p-sm-5">
+            <h2 class="text-center mb-4"><i class="fa-solid fa-user-plus text-primary me-2"></i>Бүртгүүлэх</h2>
+            
+            <form method="POST" action="{{ url_for('auth.register') }}">
+                <div class="mb-3">
+                    <label class="form-label">Таны нэр</label>
+                    <input type="text" name="username" class="form-control" required placeholder="Нэрээ оруулна уу">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">И-мэйл хаяг</label>
+                    <input type="email" name="email" class="form-control" required placeholder="email@example.com">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Нууц үг</label>
+                    <input type="password" name="password" class="form-control" required placeholder="Нууц үг зохионо уу">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Таны үүрэг (Хэн бэ?)</label>
+                    <select name="role" class="form-select">
+                        <option value="suragch">Сурагч</option>
+                        <option value="bagsh">Багш</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label">Анги / Бүлэг</label>
+                    <input type="text" name="grade" class="form-control" placeholder="Жишээ нь: 12А, 9Б">
+                </div>
+                
+                <button type="submit" class="btn btn-primary w-100 py-2.5 mb-3">Бүртгүүлэх</button>
+            </form>
 
-      <h2>Бүртгүүлэх</h2>
-      <form method="POST" action="{{ url_for('auth.register') }}">
-        <div class="form-group">
-          <label>Нэр</label>
-          <input type="text" name="username" required placeholder="Таны нэр">
+            <div class="text-center mt-3">
+                <span class="text-muted">Бүртгэлтэй юу?</span> 
+                <a href="{{ url_for('auth.login') }}" class="text-decoration-none fw-bold ms-1">Нэвтрэх</a>
+            </div>
         </div>
-        <div class="form-group">
-          <label>И-мэйл</label>
-          <input type="email" name="email" required placeholder="email@example.com">
-        </div>
-        <div class="form-group">
-          <label>Нууц үг</label>
-          <input type="password" name="password" required placeholder="Нууц үг">
-        </div>
-        <div class="form-group">
-          <label>Хэн бэ?</label>
-          <select name="role">
-            <option value="suragch">Сурагч</option>
-            <option value="bagsh">Багш</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Анги</label>
-          <input type="text" name="grade" placeholder="Жишээ: 12А">
-        </div>
-        <button type="submit" class="btn-primary">Бүртгүүлэх</button>
-      </form>
-
-      <p style="text-align:center; margin-top:1rem">
-        Бүртгэлтэй юу? 
-        <a href="{{ url_for('auth.login') }}">Нэвтрэх</a>
-      </p>
     </div>
-  </main>
-</body>
-</html>
+</div>
+{% endblock %}
