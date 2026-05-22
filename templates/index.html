@@ -10,6 +10,29 @@
     html{scroll-behavior:smooth}
     body{background:var(--bg,#ffffff);min-height:100vh;position:relative;overflow-x:hidden;transition:background .3s,color .3s;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:16px;line-height:1.7;color:#0f172a;padding-top:76px}
     
+    /* --- Арын дэвсгэрийн бөмбөлөг эффект --- */
+    .bubbles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      pointer-events: none;
+    }
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(57, 138, 221, 0.05);
+      animation: float-up 12s infinite linear;
+      bottom: -50px;
+    }
+    @keyframes float-up {
+      0% { transform: translateY(0) scale(1); opacity: 0; }
+      50% { opacity: 0.6; }
+      100% { transform: translateY(-110vh) scale(1.2); opacity: 0; }
+    }
+
     :root{
       --bg:#ffffff;--bg2:#f8fafc;--surface:#ffffff;--border:#e2e8f0;
       --text:#0f172a;--text2:#64748b;--text3:#94a3b8;
@@ -62,13 +85,6 @@
     .ai-input::placeholder{color:var(--text3)}
     .ai-send{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#378ADD,#7F77DD);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s;font-size:16px;font-weight:bold}
     .ai-send:hover{opacity:.92;transform:scale(1.05)}
-    .ai-divider{border:none;border-top:.5px solid var(--border);margin:0 14px}
-    .ai-chips-row{display:flex;gap:10px;padding:12px 16px;overflow-x:auto;scrollbar-width:none}
-    .ai-chips-row::-webkit-scrollbar{display:none}
-    .chip{font-size:13px;color:var(--text2);background:var(--bg2);border:.5px solid var(--border);border-radius:99px;padding:8px 14px;cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0}
-    .chip:hover{background:var(--blue1);color:var(--blue2);border-color:rgba(55,138,221,0.3)}
-    .ai-hint{font-size:12px;color:var(--text3);text-align:center;margin-bottom:2rem;margin-top:.75rem}
-    .ai-hint span{color:var(--blue2);font-weight:600}
 
     .grade-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;max-width:840px;margin:0 auto 2.5rem}
     .gc{border-radius:20px;padding:2.5rem 1.5rem;cursor:pointer;text-align:center;transition:all .25s cubic-bezier(0.4, 0, 0.2, 1);position:relative;overflow:hidden;border:1px solid var(--border);min-height:160px;display:flex;flex-direction:column;justify-content:center;box-shadow:0 4px 15px var(--shadow)}
@@ -88,11 +104,6 @@
     .welcome-card strong{display:block;font-size:1.3rem;color:var(--text);margin-bottom:0.5rem}
 
     .div{border:none;border-top:.5px solid var(--border);margin:2rem 0}
-    .sr{display:grid;grid-template-columns:repeat(3,1fr);background:var(--bg2);border-radius:16px;overflow:hidden;border:1px solid var(--border)}
-    .st{padding:1.5rem;text-align:center;border-right:.5px solid var(--border)}
-    .st:last-child{border-right:none}
-    .stn{font-size:1.8rem;font-weight:800;color:var(--text);margin:0}
-    .stl{font-size:13px;color:var(--text2);margin:4px 0 0;font-weight:500;text-transform:uppercase}
 
     .fg{display:grid;grid-template-columns:1fr 1fr;gap:16px}
     .fc{border:.5px solid var(--border);border-radius:16px;padding:1.5rem;background:var(--surface);display:flex;gap:14px;align-items:flex-start}
@@ -101,82 +112,111 @@
     .fd{font-size:13px;color:var(--text2);margin:0;line-height:1.6}
 
     @media(max-width:1024px){.fg{grid-template-columns:1fr}}
-    @media(max-width:760px){.hh{font-size:2.2rem}.grade-row{grid-template-columns:1fr}.nav{padding:12px 18px}.welcome-row{grid-template-columns:1fr}.sr{grid-template-columns:1fr}}
+    @media(max-width:760px){.hh{font-size:2.2rem}.grade-row{grid-template-columns:1fr}.nav{padding:12px 18px}.welcome-row{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
 
-<nav class="nav">
-  <a class="logo-a" href="/">
-    <div class="logo-box">SB</div>
-    <div>
-      <span class="logo-name">Super Brain</span>
-      <span class="logo-tag">Цогц Систем · AI Дэмжлэг</span>
+  <div class="bubbles" id="bubble-container"></div>
+
+  <nav class="nav">
+    <a class="logo-a" href="/">
+      <div class="logo-box">SB</div>
+      <div>
+        <span class="logo-name">Super Brain</span>
+        <span class="logo-tag">Цогц Систем · AI Дэмжлэг</span>
+      </div>
+    </a>
+    <div class="nr">
+      <a href="/tests" class="nl">Тестүүд</a>
+      <a href="/ai-chat" class="nl" style="color:var(--blue2); font-weight:600;"><i class="ti ti-robot"></i> AI Зөвлөх</a>
+      {% if current_user.is_authenticated %}
+        <span style="font-size:13px;color:var(--text2);font-weight:600;margin-left:8px;">{{ current_user.ner }}</span>
+        <a href="{{ url_for('auth.logout') }}" class="nbtn" style="margin-left:8px;">Гарах</a>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}" class="nbtn">Нэвтрэх</a>
+      {% endif %}
     </div>
-  </a>
-  <div class="nr">
-    <a href="/tests" class="nl">Тестүүд</a>
-    <a href="/ai-chat" class="nl" style="color:var(--blue2); font-weight:600;"><i class="ti ti-robot"></i> AI Зөвлөх</a>
-    {% if current_user.is_authenticated %}
-      <span style="font-size:13px;color:var(--text2);font-weight:600;margin-left:8px;">{{ current_user.ner }}</span>
-      <a href="{{ url_for('auth.login') }}" class="nbtn" style="margin-left:8px;">Гарах</a>
-    {% else %}
-      <a href="{{ url_for('auth.login') }}" class="nbtn">Нэвтрэх</a>
-    {% endif %}
+  </nav>
+
+  <div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }}" style="margin-top:1rem; padding:12px; border-radius:10px; background:var(--blue1); color:var(--text)">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="hero">
+      <div class="htag"><i class="ti ti-sparkles"></i> SUPER BRAIN Адаптив Технологи</div>
+      <h1 class="hh">Мэдлэгээ <span class="gr">Шалгаж</span>,<br>Ирээдүйгээ Цогцлон Бүтээ</h1>
+
+      <div class="ai-search-wrap">
+        <div class="ai-search-box">
+          <div class="ai-input-row">
+            <i class="ti ti-sparkles ai-icon" aria-hidden="true"></i>
+            <input class="ai-input" id="aiInput" placeholder="Хичээл эсвэл сэдэв хайх... жш: фотосинтез, kvadrat tегшитгэл" />
+            <button class="ai-send">↑</button>
+          </div>
+        </div>
+      </div>
+
+      {% if current_user.is_authenticated %}
+        <div class="welcome-row">
+          <div class="welcome-card">
+            <strong>Сайн байна уу, {{ current_user.ner }} 👋</strong>
+            <p>Super Brain систем амжилттай ажиллаж байна. Шинэ Google Sheet холбогдсон.</p>
+          </div>
+          <div class="welcome-card">
+            <strong>Систем бэлэн</strong>
+            <p>Асуултуудыг шинэчлэхийн тулд хаягны ард /import-now гэж бичиж орно уу.</p>
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="grade-row">
+        <div class="gc g5">
+          <span class="gn">5</span>
+          <span class="gl">Дугаар анги</span>
+        </div>
+        <div class="gc g9">
+          <span class="gn">9</span>
+          <span class="gl">Дугаар анги</span>
+        </div>
+        <div class="gc g12">
+          <span class="gn">12</span>
+          <span class="gl">Дугаар анги</span>
+        </div>
+      </div>
+    </div>
+
+    <hr class="div">
+    
+    <div class="fg">
+      <div class="fc"><div class="fi"><i class="ti ti-checklist" aria-hidden="true"></i></div><div><p class="ft">Blueprint стандарт тест</p><p class="fd">Мэдлэг 27% · Чадвар 53% · Хэрэглээ 20% олон улсын үнэлгээний аргачлал.</p></div></div>
+      <div class="fc"><div class="fi"><i class="ti ti-brain" aria-hidden="true"></i></div><div><p class="ft">AI Адаптив дасгал</p><p class="fd">Алдаатай сэдвийг шууд таньж, Gemini хиймэл оюунаар бататгах дасгал үүсгэнэ.</p></div></div>
+    </div>
   </div>
-</nav>
 
-<div class="container">
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for cat, msg in messages %}
-        <div class="alert alert-{{ cat }}" style="margin-top:1rem; padding:12px; border-radius:10px; background:var(--blue1); color:var(--text)">{{ msg }}</div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
-
-  <div class="hero">
-    <div class="htag"><i class="ti ti-sparkles"></i> SUPER BRAIN Адаптив Технологи</div>
-    <h1 class="hh">Мэдлэгээ <span class="gr">Шалгаж</span>,<br>Ирээдүйгээ Цогцлон Бүтээ</h1>
-
-    <div class="ai-search-wrap">
-      <div class="ai-search-box">
-        <div class="ai-input-row">
-          <i class="ti ti-sparkles ai-icon" aria-hidden="true"></i>
-          <input class="ai-input" id="aiInput" placeholder="Хичээл эсвэл сэдэв хайх... жш: фотосинтез, квадрат тэгшитгэл" />
-          <button class="ai-send">↑</button>
-        </div>
-      </div>
-    </div>
-
-    {% if current_user.is_authenticated %}
-      <div class="welcome-row">
-        <div class="welcome-card">
-          <strong>Сайн байна уу, {{ current_user.ner }} 👋</strong>
-          <p>Super Brain систем амжилттай ажиллаж байна. Шинэ Google Sheet холбогдсон.</p>
-        </div>
-        <div class="welcome-card">
-          <strong>Систем бэлэн</strong>
-          <p>Асуултуудыг шинэчлэхийн тулд хаягны ард /import-now гэж бичиж орно уу.</p>
-        </div>
-      </div>
-    {% endif %}
-
-    <div class="grade-row">
-      <div class="gc g5">
-        <span class="gn">5</span>
-        <span class="gl">Дугаар анги</span>
-      </div>
-      <div class="gc g9">
-        <span class="gn">9</span>
-        <span class="gl">Дугаар анги</span>
-      </div>
-      <div class="gc g12">
-        <span class="gn">12</span>
-        <span class="gl">Дугаар анги</span>
-      </div>
-    </div>
-  </div>
-
+  <script>
+    // Бөмбөлөг үүсгэх автомат скрипт
+    function createBubbles() {
+      const container = document.getElementById('bubble-container');
+      const bubbleCount = 15;
+      for (let i = 0; i < bubbleCount; i++) {
+        let bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        let size = Math.random() * 30 + 10;
+        bubble.style.width = size + 'px';
+        bubble.style.height = size + 'px';
+        bubble.style.left = Math.random() * 100 + '%';
+        bubble.style.animationDelay = Math.random() * 6 + 's';
+        bubble.style.animationDuration = Math.random() * 5 + 7 + 's';
+        container.appendChild(bubble);
+      }
+    }
+    createBubbles();
+  </script>
 </body>
 </html>
