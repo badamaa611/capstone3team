@@ -1,54 +1,206 @@
-{% extends "base.html" %}
-{% block title %}Super Brain - Нүүр хуудас{% endblock %}
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Superbrain Улсын Шалгалтын Бэлтгэл Systems</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #1e293b;
+        }
+        .navbar-custom {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 15px 0;
+        }
+        .hero-section {
+            background-color: #ffffff;
+            padding: 50px 0;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 30px;
+        }
+        .grade-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        .grade-card:hover {
+            border-color: #0d6efd;
+            box-shadow: 0 5px 15px rgba(13, 110, 253, 0.1);
+        }
+        .grade-title {
+            font-size: 32px;
+            font-weight: bold;
+            color: #0d6efd;
+        }
+        .subject-list {
+            display: none;
+            margin-top: 15px;
+            text-align: left;
+            background: #f1f5f9;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .subject-link {
+            display: block;
+            padding: 8px 12px;
+            color: #1e293b;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+        }
+        .subject-link:hover {
+            background-color: #0d6efd;
+            color: #ffffff;
+        }
+        .feature-box {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            height: 100%;
+        }
+        .feature-icon {
+            font-size: 24px;
+            color: #0d6efd;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
 
-{% block content %}
-<div class="text-center my-5">
-    <h1 class="display-5 text-primary fw-bold">Шалгалтын Бэлтгэл Онлайн Систем</h1>
-    <p class="lead text-muted">5, 9, 12-р ангийн улсын шалгалтын бэлтгэлд зориулсан цогц платформ</p>
-</div>
-
-<div class="row g-4 mt-2">
-    <div class="col-md-4">
-        <div class="card p-4 h-100">
-            <div class="card-body text-center">
-                <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
-                    <i class="fa-solid fa-file-lines fa-xl"></i>
-                </div>
-                <h4 class="card-title mb-3">Жишиг Тестүүд</h4>
-                <p class="card-text text-muted">Шалгалтын блупринтын дагуу бэлтгэсэн 5, 9, 12-р ангийн сорилууд.</p>
-                <a href="/tests" class="btn btn-outline-primary mt-2">Тест үзэх</a>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-4">
-        <div class="card p-4 h-100">
-            <div class="card-body text-center">
-                <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
-                    <i class="fa-solid fa-robot fa-xl"></i>
-                </div>
-                <h4 class="card-title mb-3">AI Багш / Зөвлөх</h4>
-                <p class="card-text text-muted">Ойлгохгүй байгаа бодлого, асуултаа 24/7 ухаалаг AI туслахаас асуугаарай.</p>
-                <a href="/ai-chat" class="btn btn-outline-success mt-2">AI-тай чатлах</a>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-4">
-        <div class="card p-4 h-100">
-            <div class="card-body text-center">
-                <div class="bg-warning text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
-                    <i class="fa-solid fa-chart-line fa-xl"></i>
-                </div>
-                <h4 class="card-title mb-3">Ахиц Дэвшил</h4>
-                <p class="card-text text-muted">Өөрийн өгсөн шалгалтуудын үр дүн, статистик графикийг хянах хэсэг.</p>
+    <nav class="navbar navbar-custom">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary" href="/">
+                <i class="fa-solid fa-brain me-2"></i>Superbrain
+            </a>
+            <div class="ms-auto d-flex align-items-center gap-3">
                 {% if current_user.is_authenticated %}
-                    <span class="badge bg-light text-dark p-2 mt-2">Идэвхтэй</span>
+                    <span>Сайн байна уу, <strong>{{ current_user.ner }}</strong>!</span>
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm px-3">Гарах</a>
                 {% else %}
-                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-warning mt-2">Нэвтэрч үзэх</a>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-link text-decoration-none text-secondary btn-sm">Нэвтрэх</a>
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm px-3">Бүртгүүлэх</a>
                 {% endif %}
             </div>
         </div>
+    </nav>
+
+    <div class="hero-section text-center">
+        <div class="container">
+            <h1 class="fw-bold mb-2">Улсын Шалгалтын Бэлтгэл Систем</h1>
+            <p class="text-secondary mx-auto" style="max-width: 600px;">5, 9, 12-р ангийн улсын шалгалтын блупринтийн дагуу бэлтгэсэн жишиг сорилтууд.</p>
+        </div>
     </div>
-</div>
-{% endblock %}
+
+    <div class="container mb-5">
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-4">
+                <div class="grade-card" onclick="toggleSubjects('g5')">
+                    <div class="grade-title">5</div>
+                    <h5 class="fw-bold mb-1">Бага боловсрол</h5>
+                    <p class="text-muted small mb-0">Төгсөх ангийн шалгалт</p>
+                    
+                    <div id="g5" class="subject-list">
+                        <a href="/tests" class="subject-link"><i class="fa-solid fa-book me-2"></i>Эх хэл</a>
+                        <a href="/tests" class="subject-link"><i class="fa-solid fa-calculator me-2"></i>Математик</a>
+                        <a href="/tests" class="subject-link"><i class="fa-solid fa-flask me-2"></i>Байгаль шинжлэл</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="grade-card" onclick="toggleSubjects('g9')">
+                    <div class="grade-title">9</div>
+                    <h5 class="fw-bold mb-1">Суурь боловсрол</h5>
+                    <p class="text-muted small mb-0">Төгсөх ангийн шалгалт</p>
+                    
+                    <div id="g9" class="subject-list">
+                        <a href="/tests" class="subject-link"><i class="fa-solid fa-book me-2"></i>Монгол хэл</a>
+                        <a href="/tests" class="subject-link"><i class="fa-solid fa-calculator me-2"></i>Математик</a>
+                        <a href="/tests" class="subject-link"><i class="fa-solid fa-earth-americas"></i>Нийгэм судлал</a>
+                        <a href="/tests" class="subject-link"><i class="fa-solid fa-dna"></i>Байгалийн ухаан</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="grade-card" onclick="toggleSubjects('g12')">
+                    <div class="grade-title">12</div>
+                    <h5 class="fw-bold mb-1">Бүрэн дунд боловсрол</h5>
+                    <p class="text-muted small mb-0">ЭЕШ болон төгсөх шалгалт</p>
+                    
+                    <div id="g12" class="subject-list">
+                        <a href="/tests" class="subject-link"><i class="fa-solid fa-calculator me-2"></i>Математик</a>
+                        <a href="/tests" class="subject-link"><i class="fa-solid fa-font"></i>Монгол хэл</a>
+                        <a href="/tests" class="subject-link"><i class="fa-solid fa-language"></i>Англи хэл</a>
+                        <a href="/tests" class="subject-link"><i class="fa-solid fa-atom"></i>Физик / Хими</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mb-5">
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="feature-box">
+                    <div class="feature-icon"><i class="fa-solid fa-list-check"></i></div>
+                    <h6 class="fw-bold">Албан ёсны Блупринт</h6>
+                    <p class="text-muted small mb-0">Боловсролын үнэлгээний төвийн албан ёсны шалгалтын бүтцэд суурилсан.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="feature-box">
+                    <div class="feature-icon"><i class="fa-solid fa-robot"></i></div>
+                    <h6 class="fw-bold">Ухаалаг AI Зөвлөх</h6>
+                    <p class="text-muted small mb-0">Сурагчийн алдаан дээр дүн шинжилгээ хийж, чиглүүлэх хиймэл оюун ухаан.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="feature-box">
+                    <div class="feature-icon"><i class="fa-solid fa-chart-pie"></i></div>
+                    <h6 class="fw-bold">Ахиц Дэвшлийн Аналитик</h6>
+                    <p class="text-muted small mb-0">Багш, сурагчийн үр дүнг тодорхой график болон тайлангаар шууд харуулна.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="feature-box">
+                    <div class="feature-icon"><i class="fa-solid fa-stopwatch"></i></div>
+                    <h6 class="fw-bold">Хугацаатай Мок Шалгалт</h6>
+                    <p class="text-muted small mb-0">Яг улсын шалгалтын цагийн хуваарилалтыг дуурайлган хийсэн сорилтууд.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Анги дээр дарахад хичээлүүд нээгддэг үндсэн скрипт
+        function toggleSubjects(id) {
+            var allContainers = document.getElementsByClassName('subject-list');
+            for (var i = 0; i < allContainers.length; i++) {
+                if (allContainers[i].id !== id) {
+                    allContainers[i].style.display = 'none';
+                }
+            }
+            var target = document.getElementById(id);
+            if (target.style.display === 'block') {
+                target.style.display = 'none';
+            } else {
+                target.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
