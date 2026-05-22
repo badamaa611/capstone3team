@@ -11,7 +11,7 @@ app.config['SECRET_KEY'] = 'super-brain-secret-key-2026'
 basedir = os.path.abspath(os.path.dirname(__file__))
 instance_path = os.path.join(basedir, 'instance')
 
-# --- СҮҮЛИЙН НЭМЭЛТ: Render дээр 'instance' хавтас байхгүй бол урьдчилж үүсгэх ---
+# Render болон локал орчинд хавтас байхгүй бол урьдчилж үүсгэх
 if not os.path.exists(instance_path):
     os.makedirs(instance_path, exist_ok=True)
 
@@ -27,7 +27,7 @@ login_manager.login_message_category = 'info'
 # 3. Өгөгдлийн сангийн Модел
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
-    ner = db.Column(db.String(150), nullable=False)   # Хэрэглэгчийн нэр (HTML-ийн .ner талбартай ижил)
+    ner = db.Column(db.String(150), nullable=False)   # Хэрэв username байсан бол 'ner' болгов
     email = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(256), nullable=False)
     role = db.Column(db.String(50), nullable=False, default='suragch') # 'bagsh' эсвэл 'suragch'
@@ -37,9 +37,13 @@ class User(db.Model, UserMixin):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# 4. Blueprint-ийг импортлож бүртгэх
+# 4. Blueprint-ийг ИШ ТҮҮҮНД ЗӨВХӨН НЭГ УДАА импортлож бүртгэх
 from auth import auth as auth_blueprint
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
+
+# Gunicorn болон бүх орчинд хүснэгтийг автоматаар үүсгэх ложик
+with app.app_context():
+    db.create_all()
 
 # 5. Үндсэн хуудаснуудын замууд (Routes)
 @app.route('/')
@@ -52,24 +56,8 @@ def tests():
 
 @app.route('/ai-chat')
 def ai_chat():
-    return "<h3>AI Зөвлөх системууд (Удахгүй нэмэгдэнэ)</h3><a href='/'>Нүүр хуудас руу буцах</a>"
+    return "<h3>AI Зөвлөх систем (Удахгүй нэмэгдэнэ)</h3><a href='/'>Нүүр хуудас руу буцах</a>"
 
-# Blueprint бүртгэсэн хэсгийн яг доор, Routes-ийн дээр ингэж шууд бичиж өгнө:
-from auth import auth as auth_blueprint
-app.register_blueprint(auth_blueprint, url_prefix='/auth')
-
-# --- ЭНД ШИНЭЭР НЭМЖ БАЙНА (Gunicorn-д зориулав) ---
-with app.app_context():
-    db.create_all()  # Апп хаана ч ассан хүснэгтүүдийг заавал шалгаж үүсгэнэ
-# --------------------------------------------------
-
-# 5. Үндсэн хуудаснуудын замууд (Routes)
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-# ... (бусад замууд хэвээрээ үлдэнэ) ...
-
-# 6. Аппликейшнийг локалоор ажиллуулах хэсэг (Одоо маш цэгцтэй болсон)
+# 6. Аппликейшнийг локалоор ажиллуулах хэсэг
 if __name__ == '__main__':
     app.run(debug=True)
