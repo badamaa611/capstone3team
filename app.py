@@ -1,29 +1,32 @@
 ﻿import os
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin
-from flask_bcrypt import Bcrypt
+from flask_bcrypt import Bcrypt  # Энд нэмэв
 
+# 1. Аппликейшн үүсгэх болон тохиргоо
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'super-brain-secret-key-2026'
 
-# Өгөгдлийн сангийн байршил тогтоох
+# Өгөгдлийн сангийн замыг тохируулах
 basedir = os.path.abspath(os.path.dirname(__file__))
 instance_path = os.path.join(basedir, 'instance')
+
 if not os.path.exists(instance_path):
     os.makedirs(instance_path, exist_ok=True)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(instance_path, 'user.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# 2. Сангуудыг аппликейшнтэй холбох
 db = SQLAlchemy(app)
-bcrypt = Bcrypt(app)
+bcrypt = Bcrypt(app)  # Bcrypt-ийг апп-тай зөв холбож өгөв!
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'auth.login'
 login_manager.login_message_category = 'info'
 
-# Хэрэглэгчийн модел (Модель өөрчлөгдөөгүй)
+# 3. Өгөгдлийн сангийн Модел
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     ner = db.Column(db.String(150), nullable=False)   
@@ -36,50 +39,27 @@ class User(db.Model, UserMixin):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Хэрэв танд auth.py байгаа бол blueprint холбоно, байхгүй бол алдаа заахаас сэргийлж try-except хийв
-try:
-    from auth import auth as auth_blueprint
-    app.register_blueprint(auth_blueprint, url_prefix='/auth')
-except ImportError:
-    pass
+# 4. Blueprint-ийг импортлож бүртгэх
+from auth import auth as auth_blueprint
+app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
+# Өгөгдлийн санг шинээр цэвэрхэн үүсгэх
 with app.app_context():
-    db.create_all()
+    db.drop_all()   # Одоо байгаа гацсан бүх хүснэгтийг устгана
+    db.create_all()  # Шинэ цэвэр хүснэгт үүсгэнэ
 
-# --- ХУУДАСНУУДЫН ХОЛБООС ---
+# 5. Үндсэн хуудаснууд
 @app.route('/')
 def index():
     return render_template('index.html')
 
 @app.route('/tests')
 def tests():
-    try:
-        return render_template('tests.html')
-    except Exception:
-        return "<div style='text-align:center; margin-top:50px;'><h3>Шалгалтын бэлтгэл тестүүд (Түр хуудас)</h3><a href='/'>Буцах</a></div>"
+    return "<h3>Шалгалтын бэлтгэл тестүүд (Удахгүй нэмэгдэнэ)</h3><a href='/'>Нүүр хуудас руу буцах</a>"
 
 @app.route('/ai-chat')
 def ai_chat():
-    try:
-        return render_template('ai-chat.html')
-    except Exception:
-        return "<div style='text-align:center; margin-top:50px;'><h3>AI Зөвлөх систем (Түр хуудас)</h3><a href='/'>Буцах</a></div>"
-
-# --- GEMINI AI АСУУЛТЫН СҮҮЛД НЭМСЭН ЗАМ ---
-@app.route('/ai-ask', methods=['POST'])
-def ai_ask():
-    data = request.get_json()
-    if not data or 'query' not in data:
-        return jsonify({"answer": "Асуултаа оруулна уу."})
-    
-    user_query = data.get('query')
-    
-    try:
-        # Энд сурагчдын асуусан асуултад хариулах Gemini-ийн үндсэн хариулт дуудагдана.
-        ai_response = f"'{user_query}' сэдвийн хүрээнд Superbrain AI зөвлөж байна: Уг чиглэл нь улсын шалгалтын блупринт болон мэргэжил сонголтод маш чухал ач холбогдолтой тул та харгалзах ангийн сорилтуудыг идэвхтэй ажиллаарай."
-        return jsonify({"answer": ai_response})
-    except Exception as e:
-        return jsonify({"answer": f"AI холболтод алдаа гарлаа: {str(e)}"})
+    return "<h3>AI Зөвлөх систем (Удахгүй нэмэгдэнэ)</h3><a href='/'>Нүүр хуудас руу буцах</a>"
 
 if __name__ == '__main__':
     app.run(debug=True)
