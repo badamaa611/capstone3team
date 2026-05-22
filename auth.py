@@ -2,75 +2,87 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# 'auth' нэртэй Блүпринт үүсгэх
 auth = Blueprint('auth', __name__)
 
-# app.py дээр үүсгэсэн db болон User моделыг энд уншуулах
 from app import db, User
 
-# --- БҮРТГҮҮЛЭХ ЛОГИК ---
+# --- БҮРТГҮҮЛЭХ ---
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
         
     if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        role = request.form.get('role', 'suragch')
-        grade = request.form.get('grade', '')
-        
-        # Имэйл давхардаж байгаа эсэхийг шалгах
-        user_exists = User.query.filter_by(email=email).first()
-        if user_exists:
-            flash('Энэ и-мэйл хаяг аль хэдийн бүртгэгдсэн байна!', 'danger')
-            return redirect(url_for('auth.register'))
+        try:
+            username = request.form.get('username')
+            email = request.form.get('email')
+            password = request.form.get('password')
+            role = request.form.get('role', 'suragch')
+            grade = request.form.get('grade', '')
             
-        # Нууц үгийг аюулгүйгээр хаш код болгох
-        hashed_password = generate_password_hash(password, method='scrypt')
-        
-        # Шинэ хэрэглэгч үүсгэж сан руу хадгалах
-        new_user = User(
-            username=username, 
-            email=email, 
-            password=hashed_password, 
-            role=role, 
-            grade=grade
-        )
-        db.session.add(new_user)
-        db.session.commit()
-        
-        flash('Амжилттай бүртгүүллээ! Одоо нэвтэрнэ үү.', 'success')
-        return redirect(url_for('auth.login'))
+            # Элементүүд дутуу ирсэн эсэхийг шалгах
+            if not username or not email or not password:
+                flash('Шаардлагатай талбаруудыг бүрэн бөглөнө үү!', 'danger')
+                return redirect(url_for('auth.register'))
+
+            user_exists = User.query.filter_by(email=email).first()
+            if user_exists:
+                flash('Энэ и-мэйл хаяг аль хэдийн бүртгэгдсэн байна!', 'danger')
+                return redirect(url_for('auth.register'))
+                
+            # method='scrypt'-ийг устгаж, автоматаар хамгийн найдвартайг нь сонгуулав
+            hashed_password = generate_password_hash(password)
+            
+            new_user = User(
+                username=username, 
+                email=email, 
+                password=hashed_password, 
+                role=role, 
+                grade=grade
+            )
+            db.session.add(new_user)
+            db.session.commit()
+            
+            flash('Амжилттай бүртгүүллээ! Одоо нэвтэрнэ үү.', 'success')
+            return redirect(url_for('auth.login'))
+            
+        except Exception as e:
+            # Терминал дээр яг ямар алдаа гарсныг хэвлэж харуулна
+            print(f"БҮРТГЭХЭД ГАРСАН АЛДАА: {e}")
+            flash('Бүртгэх үед дотоод алдаа гарлаа. Терминалаа шалгана уу.', 'danger')
+            return redirect(url_for('auth.register'))
         
     return render_template('register.html')
 
-# --- НЭВТРЭХ ЛОГИК (500 алдааг шийдсэн) ---
+# --- НЭВТРЭХ ---
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
         
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password') # HTML дээрх name="password"-той яг таарсан
-        
-        # Өгөгдлийн сангаас хэрэглэгчийг имэйлээр нь хайх
-        user = User.query.filter_by(email=email).first()
-        
-        # Хэрэглэгч олдоод, нууц үг нь таарч байвал
-        if user and check_password_hash(user.password, password):
-            login_user(user)
-            flash(f'Тавтай морил, {user.username}! Системд амжилттай нэвтэрлээ.', 'success')
-            return redirect(url_for('index'))
-        else:
-            flash('И-мэйл эсвэл нууц үг буруу байна!', 'danger')
+        try:
+            email = request.form.get('email')
+            password = request.form.get('password')
+            
+            user = User.query.filter_by(email=email).first()
+            
+            if user and check_password_hash(user.password, password):
+                login_user(user)
+                flash(f'Тавтай морил, {user.username}!', 'success')
+                return redirect(url_for('index'))
+            else:
+                flash('И-мэйл эсвэл нууц үг буруу байна!', 'danger')
+                return redirect(url_for('auth.login'))
+                
+        except Exception as e:
+            print(f"НЭВТРЭХЭД ГАРСАН АЛДАА: {e}")
+            flash('Нэвтрэх үед дотоод алдаа гарлаа. Терминалаа шалгана уу.', 'danger')
             return redirect(url_for('auth.login'))
             
     return render_template('login.html')
 
-# --- СИСТЕМЭЭС ГАРАХ ЛОГИК ---
+# --- ГАРАХ ---
 @auth.route('/logout')
 @login_required
 def logout():
