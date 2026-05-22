@@ -2,62 +2,92 @@
 <html lang="mn">
 <head>
   <meta charset="UTF-8">
-  <title>SUPER BRAIN - Нүүр хуудас</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SUPER BRAIN - Цогц Систем</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <style>
-    :root { --bg:#ffffff; --blue2:#378ADD; --purple2:#7F77DD; --text:#0f172a; --card-bg:#ffffff; }
-    body { background: var(--bg); font-family: sans-serif; padding-top: 76px; 
-           background-image: radial-gradient(at 0% 0%, rgba(55, 138, 221, 0.08) 0px, transparent 60%),
-                             radial-gradient(at 100% 100%, rgba(127, 119, 221, 0.08) 0px, transparent 60%);
-           background-attachment: fixed; }
-    .nav { position: fixed; top: 0; width: 100%; padding: 15px 30px; display: flex; justify-content: space-between; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); z-index: 100; border-bottom: 1px solid #e2e8f0; }
-    .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
-    .hero { text-align: center; }
-    .hh { font-size: 3rem; font-weight: 800; margin-bottom: 2rem; }
-    .gr { background: linear-gradient(135deg, var(--blue2), var(--purple2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#ffffff; --bg2:#f8fafc; --surface:#ffffff; --border:#e2e8f0;
+      --text:#0f172a; --text2:#64748b; --text3:#94a3b8;
+      --blue1:#E6F1FB; --blue2:#378ADD; --blue3:#0C447C;
+      --green1:#E1F5EE; --green2:#1D9E75; --green3:#085041;
+      --purple1:#EEEDFE; --purple2:#7F77DD; --purple3:#3C3489;
+      --shadow:rgba(0,0,0,0.06);
+    }
+    body {
+      background: var(--bg);
+      /* Bubble эффект: Хуудасны дэвсгэр дээр олон хөөсөнцөр эффект нэмэв */
+      background-image: 
+        radial-gradient(circle at 10% 10%, rgba(55, 138, 221, 0.1), transparent 20%),
+        radial-gradient(circle at 90% 20%, rgba(127, 119, 221, 0.1), transparent 20%),
+        radial-gradient(circle at 50% 80%, rgba(29, 158, 117, 0.08), transparent 20%),
+        radial-gradient(circle at 80% 90%, rgba(55, 138, 221, 0.08), transparent 15%),
+        radial-gradient(circle at 20% 90%, rgba(127, 119, 221, 0.08), transparent 15%);
+      background-attachment: fixed;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      padding-top: 76px;
+    }
+
+    /* Таны өмнөх бүх CSS класс энд байна */
+    .nav { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: rgba(255,255,255,0.92); backdrop-filter: blur(20px); position: fixed; top: 0; width: 100%; z-index: 150; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+    .logo-a { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-box { width: 42px; height: 42px; border-radius: 14px; background: linear-gradient(135deg,#378ADD,#7F77DD); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+    .nbtn { padding: 8px 16px; border-radius: 10px; background: linear-gradient(135deg,#378ADD,#7F77DD); color: #fff; text-decoration: none; font-weight: 600; }
     
-    .ai-search-box { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-    .ai-input-row { display: flex; gap: 10px; }
-    .ai-input { flex: 1; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; }
-    .ai-send { padding: 10px 20px; background: var(--blue2); color: white; border: none; border-radius: 10px; cursor: pointer; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    .hero { padding: 2.5rem 0; text-align: center; }
+    .hh { font-size: 3rem; font-weight: 800; margin-bottom: 1.5rem; color: var(--text); }
+    .hh .gr { background: linear-gradient(135deg,var(--blue2),var(--purple2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     
-    .chat-stream { text-align: left; margin-bottom: 20px; }
-    .msg-user { background: #f1f5f9; padding: 10px; border-radius: 8px; margin-bottom: 5px; }
-    .msg-ai { background: #e0f2fe; padding: 10px; border-radius: 8px; margin-bottom: 15px; }
+    .ai-search-wrap { max-width: 760px; margin: 0 auto 2.5rem; }
+    .ai-search-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 8px 36px var(--shadow); }
+    .ai-input-row { display: flex; align-items: center; gap: 10px; }
+    .ai-input { flex: 1; border: none; background: transparent; padding: 8px; outline: none; }
+    .ai-send { width: 40px; height: 40px; border-radius: 10px; background: var(--blue2); border: none; color: #fff; cursor: pointer; }
     
-    .welcome-card { background: white; padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0; margin-top: 20px; }
+    .grade-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 840px; margin: 0 auto; }
+    .gc { border-radius: 20px; padding: 2.5rem; border: 1px solid var(--border); background: var(--surface); transition: 0.3s; cursor: pointer; }
+    .gc:hover { transform: translateY(-8px); }
   </style>
 </head>
 <body>
 
 <nav class="nav">
-  <div class="logo"><b>SUPER BRAIN</b></div>
-  <div>
+  <a class="logo-a" href="/">
+    <div class="logo-box">SB</div>
+    <div><span class="logo-name">Super Brain</span></div>
+  </a>
+  <div class="nr">
     {% if current_user.is_authenticated %}
-      <span>Сайн уу, {{ current_user.ner }}</span>
-      <a href="{{ url_for('logout') }}">Гарах</a>
+      <span style="margin-right:15px; font-weight:600;">{{ current_user.ner }}</span>
+      <a href="{{ url_for('logout') }}" class="nbtn">Гарах</a>
     {% else %}
-      <a href="{{ url_for('login') }}">Нэвтрэх</a>
-      <a href="{{ url_for('register') }}">Бүртгүүлэх</a>
+      <a href="{{ url_for('login') }}" class="nbtn">Нэвтрэх</a>
     {% endif %}
   </div>
 </nav>
 
 <div class="container">
   <div class="hero">
-    <h1 class="hh">Мэдлэгээ <span class="gr">Шалгаж</span>,<br>Ирээдүйгээ Бүтээ</h1>
+    <h1 class="hh">Мэдлэгээ <span class="gr">Шалгаж</span>,<br>Ирээдүйгээ Цогцлон Бүтээ</h1>
 
-    <div class="ai-search-box">
-      <div class="chat-stream">
-        {% for chat in chats %}
-            <div class="msg-user"><b>Би:</b> {{ chat.prompt }}</div>
-            <div class="msg-ai"><b>AI:</b> {{ chat.response }}</div>
-        {% endfor %}
-      </div>
-      <form action="/" method="POST">
-        <div class="ai-input-row">
-          <input class="ai-input" name="prompt" required placeholder="Асуултаа бичнэ үү...">
+    <div class="ai-search-wrap">
+      <div class="ai-search-box">
+        <form action="/" method="POST" class="ai-input-row">
+          <input class="ai-input" name="prompt" placeholder="Хичээл эсвэл сэдэв хайх..." required />
           <button type="submit" class="ai-send">↑</button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
+
+    <div class="grade-row">
+      <div class="gc g5"><span class="gn" style="color:var(--blue2)">5</span><span class="gl">Дугаар анги</span></div>
+      <div class="gc g9"><span class="gn" style="color:var(--green2)">9</span><span class="gl">Дугаар анги</span></div>
+      <div class="gc g12"><span class="gn" style="color:var(--purple2)">12</span><span class="gl">Дугаар анги</span></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
