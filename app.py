@@ -54,3 +54,10 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()  # Өгөгдлийн санг зөв багануудтай шинээр үүсгэх
     app.run(debug=True)
+    # app.py-ийн хамгийн доор байх ёстой код:
+if __name__ == '__main__':
+    with app.app_context():
+        # instance хавтас байхгүй бол автоматаар үүсгэх ложик
+        os.makedirs(os.path.dirname(app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', '')), exist_ok=True)
+        db.create_all()  # Өгөгдлийн санг зөв багануудтай шинээр үүсгэх
+    app.run(debug=True)
