@@ -25,7 +25,7 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 # ⚠️ УХААЛАГ ХАМГААЛАЛТ: Бүтэн URL эсвэл зөвхөн ID аль нь ч байсан автоматаар цэвэрлэж авна
-RAW_SHEET_INPUT = os.getenv('GOOGLE_SHEET_ID', '1HkJZUebgNFtYghS55KUKcCjNVx7A4O2huEvyv1d331o')
+RAW_SHEET_INPUT = os.getenv('GOOGLE_SHEET_ID', '1RqJo5t0_iC0fr5bOEfCkNrAjBlmFuAe2BOZL6ewjA_A')
 
 # Хэрэв бүтэн холбоос орж ирвэл /d/ болон /edit хоорондох ID-г олж авах логик
 if "docs.google.com/spreadsheets" in RAW_SHEET_INPUT:
