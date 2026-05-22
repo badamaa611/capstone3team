@@ -66,8 +66,12 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        user = User.query.filter_by(username=request.form['username']).first()
-        if user and bcrypt.check_password_hash(user.password, request.form['password']):
+        # .get() ашигласнаар form хоосон байсан ч алдаа гаргахгүй
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        user = User.query.filter_by(username=username).first()
+        if user and bcrypt.check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for('index'))
         flash('Нэвтрэх нэр эсвэл нууц үг буруу байна.', 'danger')
@@ -76,14 +80,17 @@ def login():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        hashed_pw = bcrypt.generate_password_hash(request.form['password']).decode('utf-8')
-        new_user = User(username=request.form['username'], 
-                        ner=request.form['ner'], 
-                        password=hashed_pw)
-        db.session.add(new_user)
-        db.session.commit()
-        flash('Амжилттай бүртгүүллээ. Одоо нэвтэрнэ үү.', 'success')
-        return redirect(url_for('login'))
+        username = request.form.get('username')
+        ner = request.form.get('ner')
+        password = request.form.get('password')
+        
+        if username and password: # Хоосон эсэхийг шалгах
+            hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
+            new_user = User(username=username, ner=ner, password=hashed_pw)
+            db.session.add(new_user)
+            db.session.commit()
+            flash('Амжилттай бүртгүүллээ. Одоо нэвтэрнэ үү.', 'success')
+            return redirect(url_for('login'))
     return render_template('register.html')
 
 @app.route('/logout')
