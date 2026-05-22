@@ -8,8 +8,7 @@ bcrypt = Bcrypt()
 # --- 1. БҮРТГҮҮЛЭХ ХЭСЭГ ---
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
-    # Тойрог импортоос сэргийлж функц дотор импорт хийж байна
-    from app import db, User  
+    from app import db, User  # Дотоод импорт
     
     if current_user.is_authenticated:
         return redirect(url_for('index'))
@@ -52,8 +51,7 @@ def register():
 # --- 2. НЭВТРЭХ ХЭСЭГ ---
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
-    # Тойрог импортоос сэргийлж функц дотор импорт хийж байна
-    from app import db, User  
+    from app import db, User  # Дотоод импорт
     
     if current_user.is_authenticated:
         return redirect(url_for('index'))

@@ -1,84 +1,62 @@
-﻿from flask import Blueprint, render_template, redirect, url_for, flash, request
-from flask_login import login_user, logout_user, login_required, current_user
-from flask_bcrypt import Bcrypt
-from app import db, User  # Үндсэн app.py-аас db болон User-ийг импортлох
+﻿import os
+from flask import Flask, render_template
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin
 
-auth = Blueprint('auth', __name__)
-bcrypt = Bcrypt()  # Нууц үгийг хадгалах, шалгах функцүүдийг бэлдэх
+# 1. Аппликейшн үүсгэх болон тохиргоо
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'super-brain-secret-key-2026'
 
-# --- 1. БҮРТГҮҮЛЭХ ХЭСЭГ ---
-@auth.route('/register', methods=['GET', 'POST'])
-def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-        
-    if request.method == 'POST':
-        ner = request.form.get('ner')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        role = request.form.get('role', 'suragch')  # Сонгоогүй бол 'suragch' гэж хадгална
-        grade = request.form.get('grade')          # Анги (Жишээ нь: 12А)
+# Өгөгдлийн сангийн замыг тохируулах
+basedir = os.path.abspath(os.path.dirname(__file__))
+instance_path = os.path.join(basedir, 'instance')
 
-        # 1. Ийм цахим хаягтай хэрэглэгч өмнө нь бүртгүүлсэн эсэхийг шалгах
-        user_exists = User.query.filter_by(email=email).first()
-        if user_exists:
-            flash('Энэ цахим хаяг аль хэдийн бүртгэгдсэн байна!', 'danger')
-            return redirect(url_for('auth.register'))
+if not os.path.exists(instance_path):
+    os.makedirs(instance_path, exist_ok=True)
 
-        # 2. Нууц үгийг Bcrypt-ээр кодлох (Энэ нь нэвтрэх үеийн шалгалттай яг таарна)
-        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        
-        # 3. Шинэ хэрэглэгчийг үүсгэх
-        new_user = User(
-            ner=ner, 
-            email=email, 
-            password=hashed_password, 
-            role=role, 
-            grade=grade
-        )
-        
-        try:
-            db.session.add(new_user)
-            db.session.commit()
-            flash('Бүртгэл амжилттай! Та одоо нэвтэрч болно.', 'success')
-            return redirect(url_for('auth.login'))
-        except Exception as e:
-            db.session.rollback()
-            print(f"БҮРТГЭХЭД ГАРСАН АЛДАА: {e}")
-            flash('Бүртгэх үед дотоод алдаа гарлаа. Терминалаа шалгана уу.', 'danger')
-            
-    return render_template('register.html')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(instance_path, 'user.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# 2. Өгөгдлийн сан болон Логин менежер бэлдэх
+db = SQLAlchemy(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'auth.login'
+login_manager.login_message_category = 'info'
 
-# --- 2. НЭВТРЭХ ХЭСЭГ ---
-@auth.route('/login', methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-        
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        
-        # 1. Хэрэглэгчийг имэйл хаягаар нь өгөгдлийн сангаас хайх
-        user = User.query.filter_by(email=email).first()
-        
-        # 2. Хэрэглэгч олдсон бөгөөд нууц үг нь Bcrypt кодлолтой таарч байвал
-        if user and bcrypt.check_password_hash(user.password, password):
-            login_user(user)
-            flash('Амжилттай нэвтэрлээ!', 'success')
-            return redirect(url_for('index'))  # Үндсэн нүүр хуудас руу шилжинэ
-        else:
-            print("НЭВТРЭХЭД ГАРСАН АЛДАА: Имэйл эсвэл нууц үг зөрүүтэй байна.")
-            flash('Цахим хаяг эсвэл нууц үг буруу байна!', 'danger')
-            
-    return render_template('login.html')
+# 3. Өгөгдлийн сангийн Модел
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    ner = db.Column(db.String(150), nullable=False)   
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(256), nullable=False)
+    role = db.Column(db.String(50), nullable=False, default='suragch') 
+    grade = db.Column(db.String(20), nullable=True)                  
 
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
-# --- 3. СИСТЕМЭЭС ГАРАХ ХЭСЭГ ---
-@auth.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    flash('Системээс амжилттай гарлаа.', 'info')
-    return redirect(url_for('index'))
+# 4. Blueprint-ийг импортлож бүртгэх
+from auth import auth as auth_blueprint
+app.register_blueprint(auth_blueprint, url_prefix='/auth')
+
+# Хүснэгтүүдийг автоматаар үүсгэх ложик
+with app.app_context():
+    db.create_all()
+
+# 5. Үндсэн хуудаснуудын замууд (Routes)
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/tests')
+def tests():
+    return "<h3>Шалгалтын бэлтгэл тестүүд (Удахгүй нэмэгдэнэ)</h3><a href='/'>Нүүр хуудас руу буцах</a>"
+
+@app.route('/ai-chat')
+def ai_chat():
+    return "<h3>AI Зөвлөх систем (Удахгүй нэмэгдэнэ)</h3><a href='/'>Нүүр хуудас руу буцах</a>"
+
+# 6. Аппликейшнийг локалоор ажиллуулах хэсэг
+if __name__ == '__main__':
+    app.run(debug=True)
