@@ -7,208 +7,241 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        :root {
+            --genspark-primary: #0066fe;
+            --genspark-bg: #f4f7fa;
+            --dark-text: #1e293b;
+        }
         body {
-            background-color: #f8f9fa;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--genspark-bg);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--dark-text);
         }
-        .hero-section {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: 60px 0;
-            text-align: center;
-            border-bottom-left-radius: 30px;
-            border-bottom-right-radius: 30px;
+        .navbar-genspark {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 15px 0;
         }
-        .grade-card {
+        .brand-logo {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--genspark-primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+        .hero-genspark {
+            background-color: #ffffff;
+            padding: 50px 0;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 40px;
+        }
+        .grade-box {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 25px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
+            transition: all 0.2s ease-in-out;
+            text-align: center;
         }
-        .grade-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            border-color: #2a5298;
+        .grade-box:hover {
+            border-color: var(--genspark-primary);
+            box-shadow: 0 10px 25px rgba(0, 102, 254, 0.08);
+            transform: translateY(-2px);
         }
-        .feature-card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            transition: transform 0.3s;
+        .grade-number {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--genspark-primary);
+            margin-bottom: 10px;
         }
-        .feature-card:hover {
-            transform: translateY(-5px);
+        .subject-container {
+            display: none;
+            margin-top: 20px;
+            text-align: left;
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #f1f5f9;
         }
-        .icon-box {
-            width: 60px;
-            height: 60px;
-            background-color: rgba(42, 82, 152, 0.1);
-            color: #2a5298;
-            border-radius: 50%;
+        .subject-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            color: #475569;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-weight: 500;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            transition: all 0.15s ease;
+        }
+        .subject-item:hover {
+            background-color: var(--genspark-primary);
+            color: #ffffff;
+            border-color: var(--genspark-primary);
+        }
+        .subject-item i {
+            margin-right: 10px;
+            color: #94a3b8;
+        }
+        .subject-item:hover i {
+            color: #ffffff;
+        }
+        .feature-genspark {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            height: 100%;
+        }
+        .feature-icon {
+            font-size: 24px;
+            color: var(--genspark-primary);
+            margin-bottom: 15px;
+            background: rgba(0, 102, 254, 0.06);
+            width: 50px;
+            height: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
-            margin-bottom: 15px;
+            border-radius: 10px;
         }
-        .subject-list {
-            display: none;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px dashed #dee2e6;
+        .feature-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--dark-text);
         }
-        .subject-badge {
-            display: block;
-            background-color: #e9ecef;
-            color: #495057;
-            padding: 8px 12px;
-            margin: 5px 0;
-            border-radius: 8px;
-            text-decoration: none;
-            transition: background 0.2s;
-            font-weight: 500;
-        }
-        .subject-badge:hover {
-            background-color: #2a5298;
-            color: white;
+        .feature-text {
+            font-size: 14px;
+            color: #64748b;
+            line-height: 1.5;
         }
     </style>
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-genspark">
         <div class="container">
-            <a class="navbar-brand" href="/"><i class="fa-solid fa-brain me-2 text-primary"></i>Superbrain Цогц Систем</a>
+            <a class="brand-logo" href="/">
+                <i class="fa-solid fa-brain me-2"></i>Superbrain Цогц Систем
+            </a>
             <div class="ms-auto">
                 {% if current_user.is_authenticated %}
-                    <span class="text-white me-3">Сайн байна уу, <strong>{{ current_user.ner }}</strong>!</span>
-                    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm">Системээс гарах</a>
+                    <span class="me-3 style-text">Сайн байна уу, <strong>{{ current_user.ner }}</strong>!</span>
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm px-3">Гарах</a>
                 {% else %}
-                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light btn-sm me-2">Нэвтрэх</a>
-                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm">Бүртгүүлэх</a>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-link text-decoration-none text-secondary btn-sm me-2">Нэвтрэх</a>
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm px-3" style="background-color: var(--genspark-primary); border: none;">Бүртгүүлэх</a>
                 {% endif %}
             </div>
         </div>
     </nav>
 
-    <div class="hero-section">
-        <div class="container">
-            <h1 class="display-5 fw-bold"><i class="fa-solid fa-brain me-2"></i>Superbrain Цогц Систем</h1>
-            <p class="lead">5, 9, 12-р ангийн улсын шалгалтын бэлтгэл, батлагдсан блупринтийн дагуух тестүүд</p>
+    <div class="hero-genspark">
+        <div class="container text-center">
+            <h1 class="fw-bold mb-3" style="color: var(--dark-text); font-size: 32px;">Улсын Шалгалтын Бэлтгэл Систем</h1>
+            <p class="text-secondary mx-auto" style="max-width: 600px; font-size: 16px;">Батлагдсан албан ёсны блупринтийн дагуу бэлтгэсэн 5, 9, 12-р ангийн жишиг даалгавар, тестүүд.</p>
         </div>
     </div>
 
-    <div class="container my-5">
-        <h2 class="text-center mb-4 fw-bold">Шалгалт өгөх ангиа сонгоно уу</h2>
-        <p class="text-center text-muted mb-5">Анги дээр дарахад шалгалт авах хичээлүүдийн жагсаалт харагдана.</p>
-        
+    <div class="container mb-5">
         <div class="row g-4 justify-content-center">
             <div class="col-md-4">
-                <div class="card h-100 text-center p-4 grade-card" onclick="toggleSubjects('grade5')">
-                    <div class="card-body">
-                        <h3 class="card-title fw-bold text-primary display-6">5</h3>
-                        <p class="card-text fw-semibold text-secondary">Бага анги төгсөх шалгалт</p>
-                        
-                        <div id="grade5" class="subject-list text-start">
-                            <a href="/tests" class="subject-badge"><i class="fa-solid fa-book me-2"></i>Эх хэл (Монгол хэл)</a>
-                            <a href="/tests" class="subject-badge"><i class="fa-solid fa-calculator me-2"></i>Математик</a>
-                            <a href="/tests" class="subject-badge"><i class="fa-solid fa-flask me-2"></i>Байгаль шинжлэл</a>
-                        </div>
+                <div class="grade-box" onclick="toggleGensparkSubjects('g5')">
+                    <div class="grade-number">5</div>
+                    <h5 class="fw-bold mb-1">Бага боловсрол</h5>
+                    <p class="text-muted small mb-0">Төгсөх ангийн шалгалт</p>
+                    
+                    <div id="g5" class="subject-container">
+                        <a href="/tests" class="subject-item"><i class="fa-solid fa-book"></i>Эх хэл</a>
+                        <a href="/tests" class="subject-item"><i class="fa-solid fa-calculator"></i>Математик</a>
+                        <a href="/tests" class="subject-item"><i class="fa-solid fa-flask"></i>Байгаль шинжлэл</a>
                     </div>
                 </div>
             </div>
 
             <div class="col-md-4">
-                <div class="card h-100 text-center p-4 grade-card" onclick="toggleSubjects('grade9')">
-                    <div class="card-body">
-                        <h3 class="card-title fw-bold text-success display-6">9</h3>
-                        <p class="card-text fw-semibold text-secondary">Суурь боловсрол төгсөх шалгалт</p>
-                        
-                        <div id="grade9" class="subject-list text-start">
-                            <a href="/tests" class="subject-badge"><i class="fa-solid fa-book me-2"></i>Монгол хэл</a>
-                            <a href="/tests" class="subject-badge"><i class="fa-solid fa-calculator me-2"></i>Математик</a>
-                            <a href="/tests" class="subject-badge"><i class="fa-solid fa-earth-americas me-2"></i>Нийгэм судлал</a>
-                            <a href="/tests" class="subject-badge"><i class="fa-solid fa-dna me-2"></i>Байгалийн ухаан</a>
-                        </div>
+                <div class="grade-box" onclick="toggleGensparkSubjects('g9')">
+                    <div class="grade-number">9</div>
+                    <h5 class="fw-bold mb-1">Суурь боловсрол</h5>
+                    <p class="text-muted small mb-0">Төгсөх ангийн шалгалт</p>
+                    
+                    <div id="g9" class="subject-container">
+                        <a href="/tests" class="subject-item"><i class="fa-solid fa-book"></i>Монгол хэл</a>
+                        <a href="/tests" class="subject-item"><i class="fa-solid fa-calculator"></i>Математик</a>
+                        <a href="/tests" class="subject-item"><i class="fa-solid fa-earth-americas"></i>Нийгэм судлал</a>
+                        <a href="/tests" class="subject-item"><i class="fa-solid fa-dna"></i>Байгалийн ухаан</a>
                     </div>
                 </div>
             </div>
 
             <div class="col-md-4">
-                <div class="card h-100 text-center p-4 grade-card" onclick="toggleSubjects('grade12')">
-                    <div class="card-body">
-                        <h3 class="card-title fw-bold text-danger display-6">12</h3>
-                        <p class="card-text fw-semibold text-secondary">Бүрэн дунд боловсрол (ЭЕШ)</p>
-                        
-                        <div id="grade12" class="subject-list text-start">
-                            <a href="/tests" class="subject-badge"><i class="fa-solid fa-calculator me-2"></i>Математик</a>
-                            <a href="/tests" class="subject-badge"><i class="fa-solid fa-font me-2"></i>Монгол хэл хэрэглээ</a>
-                            <a href="/tests" class="subject-badge"><i class="fa-solid fa-language me-2"></i>Англи хэл</a>
-                            <a href="/tests" class="subject-badge"><i class="fa-solid fa-atom me-2"></i>Физик / Хими</a>
-                            <a href="/tests" class="subject-badge"><i class="fa-solid fa-timeline me-2"></i>Түүх / Нийгэм</a>
-                        </div>
+                <div class="grade-box" onclick="toggleGensparkSubjects('g12')">
+                    <div class="grade-number">12</div>
+                    <h5 class="fw-bold mb-1">Бүрэн дунд боловсрол</h5>
+                    <p class="text-muted small mb-0">ЭЕШ болон төгсөх шалгалт</p>
+                    
+                    <div id="g12" class="subject-container">
+                        <a href="/tests" class="subject-item"><i class="fa-solid fa-calculator"></i>Математик</a>
+                        <a href="/tests" class="subject-item"><i class="fa-solid fa-font"></i>Монгол хэл</a>
+                        <a href="/tests" class="subject-item"><i class="fa-solid fa-language"></i>Англи хэл</a>
+                        <a href="/tests" class="subject-item"><i class="fa-solid fa-atom"></i>Физик / Хими</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="bg-light py-5">
-        <div class="container">
-            <h2 class="text-center mb-5 fw-bold">Системийн үндсэн давуу талууд</h2>
-            <div class="row g-4">
-                <div class="col-md-3">
-                    <div class="card h-100 p-3 feature-card">
-                        <div class="card-body">
-                            <div class="icon-box"><i class="fa-solid fa-list-check"></i></div>
-                            <h5 class="card-title fw-bold">Албан ёсны Блупринт</h5>
-                            <p class="card-text text-muted small">Боловсролын үнэлгээний төвөөс гаргасан албан ёсны шалгалтын бүтцийн дагуу бэлтгэгдсэн.</p>
-                        </div>
-                    </div>
+    <div class="container mb-5 pt-3">
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="feature-genspark">
+                    <div class="feature-icon"><i class="fa-solid fa-list-check"></i></div>
+                    <div class="feature-title">Албан ёсны Блупринт</div>
+                    <div class="feature-text">Боловсролын үнэлгээний төвийн албан ёсны шалгалтын бүтцэд суурилсан.</div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card h-100 p-3 feature-card">
-                        <div class="card-body">
-                            <div class="icon-box"><i class="fa-solid fa-brain"></i></div>
-                            <h5 class="card-title fw-bold">Ухаалаг AI Зөвлөх</h5>
-                            <p class="card-text text-muted small">Сурагчийн буруу хариулсан асуултад дүн шинжилгээ хийж, зөвлөгөө өгөх хиймэл оюун ухаан.</p>
-                        </div>
-                    </div>
+            </div>
+            <div class="col-md-3">
+                <div class="feature-genspark">
+                    <div class="feature-icon"><i class="fa-solid fa-robot"></i></div>
+                    <div class="feature-title">Ухаалаг AI Зөвлөх</div>
+                    <div class="feature-text">Сурагчийн алдаан дээр дүн шинжилгээ хийж, чиглүүлэх хиймэл оюун ухаан.</div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card h-100 p-3 feature-card">
-                        <div class="card-body">
-                            <div class="icon-box"><i class="fa-solid fa-chart-line"></i></div>
-                            <h5 class="card-title fw-bold">Ахиц Дэвшлийн Аналитик</h5>
-                            <p class="card-text text-muted small">Багш болон сурагч өөрийн ажиллагааны үр дүн, аль сэдэв дээр сул байгаагаа шууд харах график систем.</p>
-                        </div>
-                    </div>
+            </div>
+            <div class="col-md-3">
+                <div class="feature-genspark">
+                    <div class="feature-icon"><i class="fa-solid fa-chart-pie"></i></div>
+                    <div class="feature-title">Ахиц Дэвшлийн Аналитик</div>
+                    <div class="feature-text">Багш, сурагчийн үр дүнг тодорхой график болон тайлангаар шууд харуулна.</div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card h-100 p-3 feature-card">
-                        <div class="card-body">
-                            <div class="icon-box"><i class="fa-solid fa-clock-rotate-left"></i></div>
-                            <h5 class="card-title fw-bold">Хугацаатай Мок Шалгалт</h5>
-                            <p class="card-text text-muted small">Яг улсын шалгалтын цагийг дуурайлган хийсэн, цаг барих чадвар суулгах туршилтын шалгалтууд.</p>
-                        </div>
-                    </div>
+            </div>
+            <div class="col-md-3">
+                <div class="feature-genspark">
+                    <div class="feature-icon"><i class="fa-solid fa-stopwatch"></i></div>
+                    <div class="feature-title">Хугацаатай Мок Шалгалт</div>
+                    <div class="feature-text">Яг улсын шалгалтын цагийн хуваарилалтыг дуурайлган хийсэн сорилтууд.</div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        function toggleSubjects(gradeId) {
-            var lists = document.getElementsByClassName('subject-list');
-            for (var i = 0; i < lists.length; i++) {
-                if (lists[i].id !== gradeId) {
-                    lists[i].style.display = 'none';
+        function toggleGensparkSubjects(id) {
+            var allContainers = document.getElementsByClassName('subject-container');
+            for (var i = 0; i < allContainers.length; i++) {
+                if (allContainers[i].id !== id) {
+                    allContainers[i].style.display = 'none';
                 }
             }
-            var currentList = document.getElementById(gradeId);
-            if (currentList.style.display === 'block') {
-                currentList.style.display = 'none';
+            var target = document.getElementById(id);
+            if (target.style.display === 'block') {
+                target.style.display = 'none';
             } else {
-                currentList.style.display = 'block';
+                target.style.display = 'block';
             }
         }
     </script>
