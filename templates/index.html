@@ -64,14 +64,6 @@
     <a href="{{ url_for('auth.login') }}" class="nbtn">Нэвтрэх</a>
   {% endif %}
   </div>
-  <div class="nr">
-    {% if current_user.is_authenticated %}
-      <span style="font-size:13px;color:var(--text2);">{{ current_user.ner }}</span>
-      <a href="{{ url_for('auth.logout') }}" class="nl">Гарах</a>
-    {% else %}
-      <a href="{{ url_for('auth.login') }}" class="nbtn">Нэвтрэх</a>
-    {% endif %}
-  </div>
 </nav>
 
 <div class="container">
