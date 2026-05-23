@@ -62,10 +62,8 @@ MOCK_TESTS = {
     ]
 }
 
-# Одоо байгаа @app.route('/') хэсгээ ингэж өөрчил
-@app.route('/', endpoint='index', methods=['GET', 'POST'])
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    # ... таны үлдсэн код хэвээрээ
     # Session-оос сурагчийн бодит тестийн үр дүнг унших, байхгүй бол анхны утга
     if 'student_stats' not in session:
         session['student_stats'] = {
