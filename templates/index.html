@@ -29,6 +29,19 @@
       --card-bg:#1e293b;
     }
 
+    /* ✅ BUBBLE ЭФФЕКТ — зөв газар (style дотор) */
+    body {
+      background: var(--bg);
+      background-image: 
+        radial-gradient(circle at 15% 50%, rgba(55, 138, 221, 0.15), transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(127, 119, 221, 0.15), transparent 25%),
+        radial-gradient(circle at 50% 80%, rgba(29, 158, 117, 0.1), transparent 20%),
+        radial-gradient(circle at 10% 10%, rgba(55, 138, 221, 0.08), transparent 15%),
+        radial-gradient(circle at 90% 90%, rgba(127, 119, 221, 0.08), transparent 15%);
+      background-attachment: fixed;
+      background-size: cover;
+    }
+
     .nav{display:flex;justify-content:space-between;align-items:center;padding:15px 30px;border-bottom:1px solid rgba(15,23,42,0.08);background:rgba(255,255,255,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);position:fixed;top:0;left:0;right:0;width:100%;z-index:150;box-shadow:0 10px 30px rgba(15,23,42,0.06);transition: background 0.3s}
     .dark .nav{background:rgba(15,23,42,0.92);border-bottom:1px solid rgba(255,255,255,0.08)}
     .logo-a{display:flex;align-items:center;gap:10px;cursor:pointer;text-decoration:none}
@@ -103,19 +116,6 @@
     @media(max-width:1024px){.fg{grid-template-columns:1fr}}
     @media(max-width:760px){.hh{font-size:2.2rem}.grade-row{grid-template-columns:1fr}.nav{padding:12px 18px}.welcome-row{grid-template-columns:1fr}.sr{grid-template-columns:1fr}}
   </style>
-/* Bubble эффект нэмэх хэсэг */
-body {
-    /* Өмнөх background-ийг үүнээр соль эсвэл нэмээрэй */
-    background: var(--bg);
-    background-image: 
-        radial-gradient(circle at 15% 50%, rgba(55, 138, 221, 0.15), transparent 25%),
-        radial-gradient(circle at 85% 30%, rgba(127, 119, 221, 0.15), transparent 25%),
-        radial-gradient(circle at 50% 80%, rgba(29, 158, 117, 0.1), transparent 20%),
-        radial-gradient(circle at 10% 10%, rgba(55, 138, 221, 0.08), transparent 15%),
-        radial-gradient(circle at 90% 90%, rgba(127, 119, 221, 0.08), transparent 15%);
-    background-attachment: fixed;
-    background-size: cover;
-}
 </head>
 <body>
 
@@ -191,5 +191,6 @@ body {
     </div>
   </div>
   
+</div>
 </body>
 </html>
