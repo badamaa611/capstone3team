@@ -59,5 +59,6 @@ def login():
 @login_required
 def logout():
     logout_user()
-    flash('Системээс амжилттай гарлаа.', 'info')
+    flash('Та системээс гарлаа.', 'info')
+    # Blueprint дотор байгаа бол 'index' нэрийг шууд дуудна
     return redirect(url_for('index'))
