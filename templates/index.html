@@ -55,7 +55,7 @@
     <div><span class="logo-name">Super Brain</span><span class="logo-tag">Цогц Систем · AI Дэмжлэг</span></div>
   </a>
   <!-- Нүүр хуудасны nav хэсгийн дотор: -->
-<div class="nr">
+  <div class="nr">
   {% if current_user.is_authenticated %}
     <span style="font-size:13px;color:var(--text2);font-weight:600;margin-left:8px;">{{ current_user.ner }}</span>
     <!-- Энэ хэсэг нь гарах товч юм -->
@@ -63,7 +63,7 @@
   {% else %}
     <a href="{{ url_for('auth.login') }}" class="nbtn">Нэвтрэх</a>
   {% endif %}
-</div>
+  </div>
   <div class="nr">
     {% if current_user.is_authenticated %}
       <span style="font-size:13px;color:var(--text2);">{{ current_user.ner }}</span>
