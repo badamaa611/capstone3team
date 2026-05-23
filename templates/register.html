@@ -4,35 +4,28 @@
   <meta charset="UTF-8">
   <title>Бүртгүүлэх - Super Brain</title>
   <style>
-    body { background: #f8fafc; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
+    body { background: #f8fafc; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; font-family: sans-serif; }
     .card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
     input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
     button { width: 100%; padding: 12px; background: #7F77DD; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    .flash-wrap { width: 100%; max-width: 400px; margin-bottom: 12px; }
+    .flash-box { padding: 10px; border-radius: 8px; font-size: 14px; margin-bottom: 6px; }
   </style>
 </head>
 <body>
-  <!-- Flash мессеж харуулах хэсэг -->
-<div id="flash-msg" style="width: 100%; text-align: center; margin-bottom: 15px;">
+
+  <div class="flash-wrap" id="flash-msg">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div style="padding: 10px; border-radius: 8px; font-size: 14px; 
-                      {% if category == 'success' %} background: #dcfce7; color: #166534; 
-                      {% else %} background: #fee2e2; color: #991b1b; {% endif %}">
+          <div class="flash-box" style="{% if category == 'success' %}background:#dcfce7;color:#166534;{% else %}background:#fee2e2;color:#991b1b;{% endif %}">
             {{ message }}
           </div>
         {% endfor %}
       {% endif %}
     {% endwith %}
-</div>
+  </div>
 
-<script>
-    // 3 секундын дараа мессежийг алга болгох
-    setTimeout(function() {
-        var msgDiv = document.getElementById('flash-msg');
-        if (msgDiv) { msgDiv.style.display = 'none'; }
-    }, 3000);
-</script>
   <div class="card">
     <h2>Бүртгүүлэх</h2>
     <form action="{{ url_for('auth.register') }}" method="POST">
@@ -41,6 +34,14 @@
       <input type="password" name="password" placeholder="Нууц үг" required>
       <button type="submit">Бүртгүүлэх</button>
     </form>
+    <p style="margin-top:16px;">Бүртгэлтэй бол <a href="{{ url_for('auth.login') }}">Нэвтрэх</a></p>
   </div>
+
+  <script>
+    setTimeout(function() {
+      var el = document.getElementById('flash-msg');
+      if (el) el.style.display = 'none';
+    }, 3000);
+  </script>
 </body>
 </html>
