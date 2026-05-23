@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ grade }}-р анги: {{ subject }} тест</title>
+  <title>{{ grade }}-р анги: Тест</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -13,13 +13,13 @@
     .q-block{margin-bottom:25px;padding-bottom:20px;border-bottom:1px solid #edf2f7}
     .q-text{font-size:16px;font-weight:600;margin-bottom:12px}
     
-    /* 🔥 ШИНЭ: ТЕСТИЙН ЗУРГИЙГ ХАРУУЛАХ СТИЛЬ */
-    .q-image{max-width:100%; max-height:280px; object-fit:contain; border-radius:8px; margin-bottom:15px; border:1px solid #e2e8f0; display:block}
+    /* Зургийн стиль */
+    .q-image{max-width:100%; max-height:280px; object-fit:contain; border-radius:8px; margin-bottom:15px; border:1px solid #e2e8f0; display:block; background:#f8fafc}
     
     .options{display:flex;flex-direction:column;gap:8px}
     .option-label{background:#f1f5f9;padding:12px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:14px;transition:all 0.2s}
     .option-label:hover{background:#e2e8f0}
-    .sub-btn{width:100%;padding:14px;background:linear-gradient(135deg,#378ADD,#7F77DD);border:none;border-radius:10px;color:#fff;font-weight:700;font-size:15px;cursor:pointer}
+    .sub-btn{width:100%;padding:14px;background:linear-gradient(135deg,#378ADD,#7F77DD);border:none;border-radius:10px;color:#fff;font-weight:700;font-size:15px;cursor:pointer;margin-top:10px}
     .back-lnk{display:block;text-align:center;margin-top:15px;font-size:13px;color:#64748b;text-decoration:none}
   </style>
 </head>
@@ -27,15 +27,15 @@
 
   <div class="test-box">
     <div class="title">
-      <i class="ti ti-file-text"></i> {{ grade }}-р анги · {{ subject }} шалгалт
+      <i class="ti ti-file-text"></i> {{ grade }}-р анги шалгалт
     </div>
     
-    <form action="/take-test/{{ grade }}/{{ subject }}" method="POST">
+    <form action="/take-test/{{ grade }}" method="POST">
       {% for q in questions %}
         <div class="q-block">
           <p class="q-text">{{ loop.index }}. {{ q.q }}</p>
           
-          {% if q.image and q.image != '' %}
+          {% if q.image %}
             <img src="{{ q.image }}" class="q-image" alt="Асуултын зураг">
           {% endif %}
           
