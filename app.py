@@ -1,4 +1,8 @@
-﻿import os
+import os
+import random
+import csv
+import io
+import requests
 import google.generativeai as genai
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
@@ -29,15 +33,87 @@ login_manager.login_message_category = 'info'
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
-    ner = db.Column(db.String(150), nullable=False)   
+    ner = db.Column(db.String(150), nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(256), nullable=False)
-    role = db.Column(db.String(50), nullable=False, default='suragch') 
-    grade = db.Column(db.String(20), nullable=True)                  
+    role = db.Column(db.String(50), nullable=False, default='suragch')
+    grade = db.Column(db.String(20), nullable=True)
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+# ============================================================
+# Google Sheet CSV-ээр уншина (public sheet)
+# Баганы дараалал:
+# A=Асуулт, B=Зураг link, C=Зөв хариулт,
+# D=Анги, E=Хичээл, F=Буруу1, G=Буруу2, H=Буруу3
+# ============================================================
+SHEET_ID = '1RqJo5t0_iC0fr5bOEfCkNrAjBlmFuAe2BOZL6ewjA_A'
+CSV_URL = f'https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=0'
+
+def get_sheet_data():
+    try:
+        resp = requests.get(CSV_URL, timeout=10)
+        resp.encoding = 'utf-8'
+        reader = csv.reader(io.StringIO(resp.text))
+        rows = list(reader)
+        return rows[1:]  # header алгасна
+    except Exception as e:
+        print(f"Sheet алдаа: {e}")
+        return []
+
+def get_questions_by_grade(grade):
+    rows = get_sheet_data()
+    questions = []
+    for i, row in enumerate(rows):
+        if len(row) < 4:
+            continue
+        row_grade = str(row[3]).strip()
+        if row_grade != str(grade):
+            continue
+
+        question_text = row[0].strip() if row[0] else ''
+        image_link    = row[1].strip() if len(row) > 1 else ''
+        correct_ans   = row[2].strip() if len(row) > 2 else ''
+        subject       = row[4].strip() if len(row) > 4 else ''
+        wrong1        = row[5].strip() if len(row) > 5 else ''
+        wrong2        = row[6].strip() if len(row) > 6 else ''
+        wrong3        = row[7].strip() if len(row) > 7 else ''
+
+        if not question_text or not correct_ans:
+            continue
+
+        options = [o for o in [correct_ans, wrong1, wrong2, wrong3] if o]
+        random.shuffle(options)
+        correct_key = chr(ord('a') + options.index(correct_ans))
+
+        questions.append({
+            'id': i + 1,
+            'q': question_text,
+            'image': image_link,
+            'subject': subject,
+            'correct': correct_key,
+            'a': options[0] if len(options) > 0 else '',
+            'b': options[1] if len(options) > 1 else '',
+            'c': options[2] if len(options) > 2 else '',
+            'd': options[3] if len(options) > 3 else '',
+        })
+    return questions
+
+def get_subjects_by_grade(grade):
+    rows = get_sheet_data()
+    subjects = []
+    for row in rows:
+        if len(row) < 5:
+            continue
+        if str(row[3]).strip() == str(grade):
+            subj = row[4].strip()
+            if subj and subj not in subjects:
+                subjects.append(subj)
+    return subjects
+
+# ============================================================
 
 from auth import auth as auth_blueprint
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
@@ -46,39 +122,16 @@ with app.app_context():
     if not os.path.exists(db_path):
         db.create_all()
 
-# Үзүүлэн тестийн өгөгдөл (Blueprint стандартын дагуу)
-MOCK_TESTS = {
-    '5': [
-        {'id': 1, 'q': 'Хоёр тооны нийлбэр 45, харьцаа нь 2:3 бол их тоог ол.', 'a': '27', 'b': '18', 'c': '25', 'd': '30', 'correct': 'a', 'topic': 'Математик (Харьцаа)'},
-        {'id': 2, 'q': 'Өгүүлбэрийг зөв залгалаар холбоно уу: "Би ном ... уншив."', 'a': 'ыг', 'b': 'ийг', 'c': 'ы', 'd': 'ийн', 'correct': 'b', 'topic': 'Монгол хэл (Тийн ялгал)'}
-    ],
-    '9': [
-        {'id': 1, 'q': 'x² - 5x + 6 = 0 тэгшитгэлийн шийдүүдийг ол.', 'a': '2 ба 3', 'b': '-2 ба -3', 'c': '1 ba 6', 'd': '0 ба 5', 'correct': 'a', 'topic': 'Математик (Тэгшитгэл)'},
-        {'id': 2, 'q': 'Нэгэн жигд хөдөлгөөний хурд v = 10 м/с, хугацаа t = 5 с бол явсан замыг ол.', 'a': '2 м', 'b': '50 м', 'c': '15 м', 'd': '0.5 м', 'correct': 'b', 'topic': 'Физик (Механик хөдөлгөөн)'}
-    ],
-    '12': [
-        {'id': 1, 'q': 'f(x) = x³ - 3x функцийн уламжлалыг ол.', 'a': '3x² - 3', 'b': 'x² - 3', 'c': '3x²', 'd': '3x - 3', 'correct': 'a', 'topic': 'Математик (Уламжлал)'},
-        {'id': 2, 'q': 'Which sentence is in Present Perfect tense?', 'a': 'I am eating.', 'b': 'I ate yesterday.', 'c': 'I have eaten.', 'd': 'I will eat.', 'correct': 'c', 'topic': 'Англи хэл (Үйл үг)'}
-    ]
-}
-
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    # Session-оос сурагчийн бодит тестийн үр дүнг унших, байхгүй бол анхны утга
     if 'student_stats' not in session:
         session['student_stats'] = {
             'total_score': 'Хүлээгдэж буй',
             'total_tests': 0,
             'strong_topics': ['Одоогоор тест ажиллаагүй байна'],
             'weak_topics': ['Одоогоор тест ажиллаагүй байна'],
-            'details': [
-                {'subject': 'Математик', 'score': 0, 'status': 'Идэвхгүй', 'color': 'var(--text3)'},
-                {'subject': 'Англи хэл', 'score': 0, 'status': 'Идэвхгүй', 'color': 'var(--text3)'},
-                {'subject': 'Физик', 'score': 0, 'status': 'Идэвхгүй', 'color': 'var(--text3)'},
-                {'subject': 'Монгол хэл', 'score': 0, 'status': 'Идэвхгүй', 'color': 'var(--text3)'}
-            ]
+            'details': []
         }
-
     if 'chat_history' not in session:
         session['chat_history'] = []
 
@@ -88,65 +141,61 @@ def index():
             model = genai.GenerativeModel(model_name="gemini-1.5-flash")
             system_instruction = (
                 "Чи бол Super Brain системийн ухаалаг AI туслах байна. "
-                "Хариултыг маш тодорхой, цэгцтэй (bullet points ашиглан) монгол хэлээр хариулна уу."
+                "Хариултыг маш тодорхой, цэгцтэй монгол хэлээр хариулна уу."
             )
             context = system_instruction + "\n\n"
             for chat in session['chat_history']:
                 context += f"Сурагч: {chat['user']}\nБагш: {chat['ai']}\n"
             context += f"\nШинэ асуулт: {user_prompt}"
-            
             response = model.generate_content(context)
             ai_response = response.text
-            
             history = session['chat_history']
             history.append({'user': user_prompt, 'ai': ai_response})
             session['chat_history'] = history
             session.modified = True
         except Exception as e:
-            ai_response = f"Уучлаарай, AI системтэй холбогдоход алдаа гарлаа: {str(e)}"
-            history = session['chat_history']
-            history.append({'user': user_prompt, 'ai': ai_response})
-            session['chat_history'] = history
+            ai_response = f"Уучлаарай, алдаа гарлаа: {str(e)}"
+            session['chat_history'].append({'user': user_prompt, 'ai': ai_response})
             session.modified = True
 
-    return render_template('index.html', chat_history=session['chat_history'], stats=session['student_stats'])
+    subjects_5  = get_subjects_by_grade('5')
+    subjects_9  = get_subjects_by_grade('9')
+    subjects_12 = get_subjects_by_grade('12')
 
-# 🔥 ТЕСТ АЖИЛЛУУЛАХ ШИНЭ СЕКЦ
+    return render_template('index.html',
+        chat_history=session['chat_history'],
+        stats=session['student_stats'],
+        subjects_5=subjects_5,
+        subjects_9=subjects_9,
+        subjects_12=subjects_12
+    )
+
 @app.route('/take-test/<grade>', methods=['GET', 'POST'])
+@app.route('/take-test/<grade>/', methods=['GET', 'POST'])
 def take_test(grade):
-    questions = MOCK_TESTS.get(grade, [])
-    
+    questions = get_questions_by_grade(grade)
+
     if request.method == 'POST':
         correct_count = 0
-        strong = []
-        weak = []
-        
+        strong, weak = [], []
         for q in questions:
             user_ans = request.form.get(f"q_{q['id']}")
             if user_ans == q['correct']:
                 correct_count += 1
-                strong.append(q['topic'])
+                strong.append(q.get('subject', ''))
             else:
-                weak.append(q['topic'])
-        
-        # Дүн тооцох болон Сэдвийн задаргааг шинэчлэх ложик
-        score_pct = int((correct_count / len(questions)) * 100)
-        
-        # Одоогийн дүнгийн бүтцийг шинэчлэх
-        current_stats = {
+                weak.append(q.get('subject', ''))
+
+        score_pct = int((correct_count / len(questions)) * 100) if questions else 0
+        session['student_stats'] = {
             'total_score': f"{score_pct}%",
-            'total_tests': 1,
-            'strong_topics': strong if strong else ['Байхгүй (Бататгах шаардлагатай)'],
-            'weak_topics': weak if weak else ['Байхгүй (Маш сайн)'],
-            'details': [
-                {'subject': 'Математик', 'score': score_pct, 'status': 'Сайн' if score_pct >= 80 else 'Анхаарах', 'color': 'var(--green2)' if score_pct >= 80 else 'var(--purple2)'},
-                {'subject': 'Ерөнхий эрдэм', 'score': score_pct, 'status': 'Дуусгасан', 'color': 'var(--blue2)'}
-            ]
+            'total_tests': session['student_stats'].get('total_tests', 0) + 1,
+            'strong_topics': list(set(strong)) if strong else ['Байхгүй'],
+            'weak_topics': list(set(weak)) if weak else ['Маш сайн байна!'],
+            'details': []
         }
-        session['student_stats'] = current_stats
         session.modified = True
-        
-        flash(f"{grade}-р ангийн тестийг амжилттай бөглөж дууслаа. Гүйцэтгэл: {score_pct}%", "success")
+        flash(f"{grade}-р ангийн тестийг дуусгалаа. Гүйцэтгэл: {score_pct}%", "success")
         return redirect(url_for('index'))
 
     return render_template('test.html', grade=grade, questions=questions)
