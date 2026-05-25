@@ -52,3 +52,9 @@ def index():
 
 if __name__ == '__main__':
     app.run(debug=True)
+    # app.py-ийн төгсгөлд эсвэл маршрутын хэсэгт нэмнэ
+@app.route('/take-test/<grade>')
+def take_test(grade):
+    # Хичээлүүдийг grade-ээс хамааруулан гаргах логик
+    # Одоохондоо зүгээр тест хийхийн тулд энэ хуудсыг буцаая
+    return f"Та {grade}-р ангийн тест хэсэгт орлоо."
