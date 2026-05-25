@@ -46,15 +46,19 @@ app.register_blueprint(auth_blueprint, url_prefix='/auth')
 with app.app_context():
     db.create_all()
 
-@app.route('/')
-def index():
-    return render_template('index.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
     # app.py-ийн төгсгөлд эсвэл маршрутын хэсэгт нэмнэ
-@app.route('/take-test/<grade>')
+@app.route('/')
+def index():
+    # Хувьсагчдыг заавал дамжуулах ёстой, эс тэгвээс алдаа гарна
+    return render_template('index.html', 
+                           subjects_5=['Математик', 'Монгол хэл'], 
+                           subjects_9=['Байгалийн ухаан', 'Математик'], 
+                           subjects_12=['Математик', 'Англи хэл','Биологи')
+
+@app.route('/take-test/<grade>', methods=['GET', 'POST'])
 def take_test(grade):
-    # Хичээлүүдийг grade-ээс хамааруулан гаргах логик
-    # Одоохондоо зүгээр тест хийхийн тулд энэ хуудсыг буцаая
+    # Энд хичээл сонгох эсвэл тест ачаалах логик бичигдэнэ
     return f"Та {grade}-р ангийн тест хэсэгт орлоо."
