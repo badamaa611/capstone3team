@@ -62,3 +62,36 @@ def index():
 def take_test(grade):
     # Энд хичээл сонгох эсвэл тест ачаалах логик бичигдэнэ
     return f"Та {grade}-р ангийн тест хэсэгт орлоо."
+from flask import session, jsonify # jsonify болон session нэмэх
+
+app.config['SECRET_KEY'] = 'smart-brain-secret-key-2026' # Нэрийг өөрчлөх
+
+@app.route('/')
+def index():
+    return render_template('index.html', 
+                           subjects_5=['Математик', 'Монгол хэл'], 
+                           subjects_9=['Байгалийн ухаан', 'Математик'], 
+                           subjects_12=['Математик', 'Англи хэл', 'Биологи'])
+
+@app.route('/take-test/<grade>', methods=['GET', 'POST'])
+def take_test(grade):
+    if request.method == 'POST':
+        # Тест шалгах логик (Энд жишээ өгөгдөл ашиглав)
+        # Бодит байдал дээр та өгөгдлийн сангаас зөв хариултыг татаж шалгана
+        session['test_result'] = {
+            'niit_asuult': 5,
+            'zow_too': 4,
+            'buruu_too': 1,
+            'ai_recommendation': "Та математикийн тэгшитгэл дээр алдаа гаргалаа. Дараах зөвлөмжийг анхаарна уу..."
+        }
+        return redirect(url_for('test_result_page'))
+    
+    # Энд асуултуудаа ачаалж test.html-д дамжуулна
+    return render_template('test.html', grade=grade, questions=[])
+
+@app.route('/result')
+def test_result_page():
+    result = session.get('test_result')
+    if not result:
+        return redirect(url_for('index'))
+    return render_template('result.html')
