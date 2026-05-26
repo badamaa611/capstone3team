@@ -56,7 +56,7 @@ def index():
     return render_template('index.html', 
                            subjects_5=['Математик', 'Монгол хэл'], 
                            subjects_9=['Байгалийн ухаан', 'Математик'], 
-                           subjects_12=['Математик', 'Англи хэл','Биологи')
+                           subjects_12=['Математик', 'Англи хэл','Биологи']
 
 @app.route('/take-test/<grade>', methods=['GET', 'POST'])
 def take_test(grade):
