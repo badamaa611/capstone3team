@@ -1,73 +1,39 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SMART BRAIN - Цогц систем</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <style>
+    /* Таны өгсөн CSS-ууд энд бүгд байрлана */
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#ffffff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; padding-top:76px}
+    .nav{display:flex;justify-content:space-between;align-items:center;padding:15px 30px;position:fixed;top:0;width:100%;background:rgba(255,255,255,0.92);backdrop-filter:blur(20px);z-index:150;}
+    /* ... Үлдсэн бүх CSS-ээ энд үргэлжлүүлэн хуулна уу ... */
+  </style>
+</head>
+<body>
 
-{% block content %}
-<div class="container">
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for cat, msg in messages %}
-        <div style="margin-top:1rem;padding:12px;border-radius:10px;background:var(--blue1);color:var(--text)">{{ msg }}</div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
-
-  <div class="hero">
-    <div class="htag"><i class="ti ti-sparkles"></i> SMART BRAIN шалгалтын платформ</div>
-    <h1 class="hh">Мэдлэгээ <span class="gr">шалгаж</span>,<br>Ирээдүйгээ цогцлон бүтээ</h1>
-
-    <div class="ai-search-wrap">
-      <div class="ai-search-box">
-        <div class="ai-input-row">
-          <i class="ti ti-sparkles ai-icon" aria-hidden="true"></i>
-          <input class="ai-input" id="aiInput" placeholder="Хичээл эсвэл сэдэв хайх..." />
-          <button class="ai-send">↑</button>
-        </div>
-      </div>
+<nav class="nav">
+  <a class="logo-a" href="/">
+    <div class="logo-box">SB</div>
+    <div>
+      <span class="logo-name">Smart Brain</span>
+      <span class="logo-tag">Шалгалтын систем · AI Дэмжлэг</span>
     </div>
-
+  </a>
+  <div class="nr">
+    <a href="/tests" class="nl">Тестүүд</a>
     {% if current_user.is_authenticated %}
-      <div class="welcome-row">
-        <div class="welcome-card">
-          <strong>Сайн байна уу, {{ current_user.ner }} 👋</strong>
-          <p>SMART BRAIN систем амжилттай ажиллаж байна.</p>
-        </div>
-        <div class="welcome-card">
-          <strong>Систем бэлэн</strong>
-          <p>Ангиа сонгоод тест эхлүүлнэ үү.</p>
-        </div>
-      </div>
+      <a href="{{ url_for('auth.logout') }}" class="nbtn">Гарах</a>
+    {% else %}
+      <a href="{{ url_for('auth.login') }}" class="nbtn">Нэвтрэх</a>
     {% endif %}
-
-    <div class="grade-row">
-      <div class="gc g5">
-        <span class="gn">5</span>
-        <span class="gl">Дугаар анги</span>
-        <div class="subj-list">
-          {% for s in subjects_5 %}
-            <a href="{{ url_for('take_test', grade='5', subject=s) }}" class="subj-tag" style="text-decoration:none;">{{ s }}</a>
-          {% endfor %}
-        </div>
-      </div>
-
-      <div class="gc g9">
-        <span class="gn">9</span>
-        <span class="gl">Дугаар анги</span>
-        <div class="subj-list">
-          {% for s in subjects_9 %}
-            <a href="{{ url_for('take_test', grade='9', subject=s) }}" class="subj-tag" style="text-decoration:none;">{{ s }}</a>
-          {% endfor %}
-        </div>
-      </div>
-
-      <div class="gc g12">
-        <span class="gn">12</span>
-        <span class="gl">Дугаар анги</span>
-        <div class="subj-list">
-          {% for s in subjects_12 %}
-            <a href="{{ url_for('take_test', grade='12', subject=s) }}" class="subj-tag" style="text-decoration:none;">{{ s }}</a>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
   </div>
-</div>
-{% endblock %}
+</nav>
+
+{% block content %}{% endblock %}
+
+</body>
+</html>
