@@ -18,10 +18,22 @@ else:
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# ... дээрх кодууд хэвээрээ ...
+
+# Засах хэсэг:
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
-login_manager = LoginManager(app)
+login_manager = LoginManager() # Энд init_app хийхээс өмнө тодорхойлно
+login_manager.init_app(app)    # Энэ мөр заавал байх ёстой
 login_manager.login_view = 'auth.login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id is not None:
+        return User.query.get(int(user_id))
+    return None
+
+# ... доорх кодууд хэвээрээ ...
 
 # --- МАРШРУТУУД ---
 @app.route('/')
