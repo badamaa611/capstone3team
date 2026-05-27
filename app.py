@@ -1,9 +1,7 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash, session
-
-# SQLAlchemy, Login, Bcrypt импорт
+from flask import Flask, render_template, request, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin
+from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
 
 app = Flask(__name__)
@@ -15,8 +13,7 @@ if os.getenv("RENDER"):
 else:
     basedir = os.path.abspath(os.path.dirname(__file__))
     db_path = os.path.join(basedir, 'instance', 'user.db')
-    if not os.path.exists(os.path.join(basedir, 'instance')):
-        os.makedirs(os.path.join(basedir, 'instance'))
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -26,23 +23,6 @@ bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'auth.login'
 
-# --- USER ЗАГВАР ---
-class User(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    ner = db.Column(db.String(150), nullable=False)
-    email = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(256), nullable=False)
-    role = db.Column(db.String(50), nullable=False, default='suragch')
-    grade = db.Column(db.String(20), nullable=True)
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
-
-# --- БЛУПРИНТ ---
-from auth import auth as auth_blueprint
-app.register_blueprint(auth_blueprint, url_prefix='/auth')
-
 # --- МАРШРУТУУД ---
 @app.route('/')
 def index():
@@ -51,18 +31,19 @@ def index():
                            subjects_9=['Байгалийн ухаан', 'Математик'], 
                            subjects_12=['Математик', 'Англи хэл', 'Биологи'])
 
-@app.route('/take-test/<grade>', methods=['GET', 'POST'])
-def take_test(grade):
+@app.route('/take-test/<grade>/<subject>', methods=['GET', 'POST'])
+def take_test(grade, subject):
     if request.method == 'POST':
-        # Энд тестийн хариулт шалгах логик бичигдэнэ
+        # Тест шалгах логик (Энд үр дүнг session-д хадгална)
         session['test_result'] = {
             'niit_asuult': 5,
             'zow_too': 4,
             'buruu_too': 1,
-            'ai_recommendation': "Та математикийн тэгшитгэл дээр алдаа гаргалаа. Дараах зөвлөмжийг анхаарна уу..."
+            'ai_recommendation': f"{subject} сэдвээр бататгах зөвлөмж..."
         }
         return redirect(url_for('test_result_page'))
-    return render_template('test.html', grade=grade, questions=[])
+    
+    return render_template('test.html', grade=grade, subject=subject)
 
 @app.route('/result')
 def test_result_page():
