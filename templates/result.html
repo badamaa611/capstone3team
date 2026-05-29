@@ -1,48 +1,71 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
-                <div class="card-header bg-primary text-white text-center py-4">
-                    <h2 class="mb-0 fw-bold">🚀 Smart Brain: Шалгалтын үр дүн</h2>
-                </div>
-                <div class="card-body p-5">
-                    <div class="d-flex justify-content-around text-center mb-4">
-                        <div>
-                            <h6 class="text-muted">Нийт</h6>
-                            <p class="fs-2 fw-bold text-primary" id="total-q">0</p>
-                        </div>
-                        <div>
-                            <h6 class="text-muted">Зөв</h6>
-                            <p class="fs-2 fw-bold text-success" id="correct-q">0</p>
-                        </div>
-                        <div>
-                            <h6 class="text-muted">Буруу</h6>
-                            <p class="fs-2 fw-bold text-danger" id="wrong-q">0</p>
-                        </div>
-                    </div>
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Шалгалтын үр дүн</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#0f172a;padding:40px 20px}
+    .result-box{max-width:760px;background:#fff;margin:0 auto;padding:30px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,0.05);border:1px solid #e2e8f0}
+    .title{font-size:24px;font-weight:800;margin-bottom:8px;color:#0C447C}
+    .subtitle{color:#64748b;margin-bottom:24px}
+    .score-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}
+    .score-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;text-align:center}
+    .score-label{font-size:13px;color:#64748b;margin-bottom:5px}
+    .score-value{font-size:28px;font-weight:800}
+    .ok{color:#16a34a}.bad{color:#dc2626}.main{color:#378ADD}
+    .note{background:#e6f1fb;border:1px solid #bfdbfe;border-radius:10px;padding:14px;margin-bottom:24px;color:#0f172a}
+    .section-title{font-size:18px;font-weight:800;margin-bottom:12px}
+    .rec{border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:12px;background:#fff}
+    .meta{font-size:12px;color:#64748b;margin-bottom:6px}
+    .q{font-weight:700;margin-bottom:8px;line-height:1.5}
+    ul{padding-left:20px;color:#334155;line-height:1.6}
+    .back{display:block;text-align:center;margin-top:20px;color:#64748b;text-decoration:none}
+    @media(max-width:640px){.score-row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="result-box">
+    <h1 class="title">Шалгалтын үр дүн</h1>
+    <p class="subtitle">{{ result.grade }}-р анги · {{ result.subject }}</p>
 
-                    <div class="alert alert-info p-4 rounded-3 border-0">
-                        <h5 class="fw-bold"><i class="ti ti-robot"></i> Gemini AI Зөвлөмж:</h5>
-                        <p id="ai-suggestion" class="mb-0">Системээс зөвлөмж ачаалж байна...</p>
-                    </div>
-                </div>
-                <div class="card-footer bg-light p-4 text-center border-0">
-                    <a href="/" class="btn btn-outline-primary btn-lg px-4 rounded-pill">Нүүр хуудас руу буцах</a>
-                </div>
-            </div>
-        </div>
+    <div class="score-row">
+      <div class="score-card">
+        <div class="score-label">Нийт</div>
+        <div class="score-value main">{{ result.niit_asuult }}</div>
+      </div>
+      <div class="score-card">
+        <div class="score-label">Зөв</div>
+        <div class="score-value ok">{{ result.zow_too }}</div>
+      </div>
+      <div class="score-card">
+        <div class="score-label">Буруу</div>
+        <div class="score-value bad">{{ result.buruu_too }}</div>
+      </div>
     </div>
-</div>
 
-<script>
-// Backend-ээс ирсэн үр дүнг авах
-const result = {{ session.get('test_result') | tojson }};
-if (result) {
-    document.getElementById('total-q').innerText = result.niit_asuult;
-    document.getElementById('correct-q').innerText = result.zow_too;
-    document.getElementById('wrong-q').innerText = result.buruu_too;
-    document.getElementById('ai-suggestion').innerText = result.ai_recommendation;
-}
-</script>
+    <div class="note">{{ result.ai_recommendation }}</div>
+
+    {% if result.similar_questions %}
+      <h2 class="section-title">Төстэй 3 асуулт</h2>
+      {% for q in result.similar_questions %}
+        <div class="rec">
+          <div class="meta">{{ q.subject }}{% if q.topic %} · {{ q.topic }}{% endif %}</div>
+          <div class="q">{{ loop.index }}. {{ q.q }}</div>
+          <ul>
+            <li>A) {{ q.a }}</li>
+            <li>B) {{ q.b }}</li>
+            <li>C) {{ q.c }}</li>
+            <li>D) {{ q.d }}</li>
+          </ul>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="note">Буруу хариулт дээр тулгуурласан төстэй асуулт олдсонгүй.</div>
+    {% endif %}
+
+    <a href="/" class="back">Нүүр хуудас руу буцах</a>
+  </div>
+</body>
+</html>

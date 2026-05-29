@@ -82,7 +82,7 @@
 
     /* Хичээлийн tag-ууд */
     .subj-list{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:4px}
-    .subj-tag{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500}
+    .subj-tag{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500;text-decoration:none}
     .g5 .subj-tag{background:var(--blue1);color:var(--blue3)}
     .g9 .subj-tag{background:var(--green1);color:var(--green3)}
     .g12 .subj-tag{background:var(--purple1);color:var(--purple3)}
@@ -106,8 +106,8 @@
     </div>
   </a>
   <div class="nr">
-    <a href="/tests" class="nl">Тестүүд</a>
-    <a href="/ai-chat" class="nl" style="color:var(--blue2); font-weight:600;"><i class="ti ti-robot"></i> AI Зөвлөх</a>
+    <a href="{{ url_for('tests_page') }}" class="nl">Тестүүд</a>
+    <a href="{{ url_for('ai_advisor') }}" class="nl" style="color:var(--blue2); font-weight:600;"><i class="ti ti-robot"></i> AI Зөвлөх</a>
     {% if current_user.is_authenticated %}
       <span style="font-size:13px;color:var(--text2);font-weight:600;margin-left:8px;">{{ current_user.ner }}</span>
       <a href="{{ url_for('auth.logout') }}" class="nbtn" style="margin-left:8px;">Гарах</a>
@@ -155,43 +155,43 @@
 
     <div class="grade-row">
       <!-- 5-р анги -->
-      <a href="{{ url_for('take_test', grade='5') }}" class="gc g5">
+      <div class="gc g5">
         <span class="gn">5</span>
         <span class="gl">Дугаар анги</span>
         {% if subjects_5 %}
           <div class="subj-list">
             {% for s in subjects_5 %}
-              <span class="subj-tag">{{ s }}</span>
+              <a class="subj-tag" href="{{ url_for('take_test', grade='5', subject=s) }}">{{ s }}</a>
             {% endfor %}
           </div>
         {% endif %}
-      </a>
+      </div>
 
       <!-- 9-р анги -->
-      <a href="{{ url_for('take_test', grade='9') }}" class="gc g9">
+      <div class="gc g9">
         <span class="gn">9</span>
         <span class="gl">Дугаар анги</span>
         {% if subjects_9 %}
           <div class="subj-list">
             {% for s in subjects_9 %}
-              <span class="subj-tag">{{ s }}</span>
+              <a class="subj-tag" href="{{ url_for('take_test', grade='9', subject=s) }}">{{ s }}</a>
             {% endfor %}
           </div>
         {% endif %}
-      </a>
+      </div>
 
       <!-- 12-р анги -->
-      <a href="{{ url_for('take_test', grade='12') }}" class="gc g12">
+      <div class="gc g12">
         <span class="gn">12</span>
         <span class="gl">Дугаар анги</span>
         {% if subjects_12 %}
           <div class="subj-list">
             {% for s in subjects_12 %}
-              <span class="subj-tag">{{ s }}</span>
+              <a class="subj-tag" href="{{ url_for('take_test', grade='12', subject=s) }}">{{ s }}</a>
             {% endfor %}
           </div>
         {% endif %}
-      </a>
+      </div>
     </div>
   </div>
 

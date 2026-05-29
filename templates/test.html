@@ -30,6 +30,7 @@
       <i class="ti ti-file-text"></i> {{ grade }}-р анги шалгалт
     </div>
     
+    {% if questions %}
     <form action="{{ url_for('take_test', grade=grade, subject=subject) }}" method="POST">
       {% for q in questions %}
         <div class="q-block">
@@ -40,7 +41,7 @@
           {% endif %}
           
          <label class="option-label">
-    <input type="radio" name="q{{ loop.index0 }}" value="a" required> A) {{ q.a }}
+  <input type="radio" name="q{{ loop.index0 }}" value="a" required> A) {{ q.a }}
 </label>
 <label class="option-label">
     <input type="radio" name="q{{ loop.index0 }}" value="b"> B) {{ q.b }}
@@ -51,12 +52,14 @@
 <label class="option-label">
     <input type="radio" name="q{{ loop.index0 }}" value="d"> D) {{ q.d }}
 </label>
-          </div>
         </div>
       {% endfor %}
       
       <button type="submit" class="sub-btn">Шалгалтыг дуусгаж, үр дүнг харах</button>
     </form>
+    {% else %}
+      <p class="q-text">Энэ анги, хичээлд асуулт олдсонгүй.</p>
+    {% endif %}
     
     <a href="/" class="back-lnk">Буцах</a>
   </div>

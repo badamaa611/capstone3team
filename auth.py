@@ -1,12 +1,12 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, login_required, current_user
+from extensions import bcrypt, db
+from models import User
 
 auth = Blueprint('auth', __name__)
 
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
-    from app import db, User, bcrypt
-
     if current_user.is_authenticated:
         return redirect(url_for('index'))
 
@@ -27,7 +27,7 @@ def register():
 
         try:
             hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-            new_user = User(ner=ner, email=email, password=hashed_password, role=role, grade=grade)
+            new_user = User(ner=ner, email=email, password=hashed_password)
             db.session.add(new_user)
             db.session.commit()
             flash('Бүртгэл амжилттай! Та одоо нэвтэрч болно.', 'success')
@@ -40,8 +40,6 @@ def register():
 
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
-    from app import db, User, bcrypt
-
     if current_user.is_authenticated:
         return redirect(url_for('index'))
 

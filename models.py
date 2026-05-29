@@ -4,16 +4,11 @@ from flask_login import UserMixin
 from datetime import datetime
 
 class User(UserMixin, db.Model):
-    __tablename__ = "users"
-    id        = db.Column(db.Integer, primary_key=True)
-    ner       = db.Column(db.String(100), nullable=False)
-    email     = db.Column(db.String(150), unique=True, nullable=False)
-    nuuts_ug  = db.Column(db.String(255), nullable=False)
-    duwer     = db.Column(db.String(10), default="suragch")  # bagsh | suragch
-    angi      = db.Column(db.String(5))
-    created   = db.Column(db.DateTime, default=datetime.utcnow)
-
-    sessions  = db.relationship("TestSession", backref="suragch", lazy=True)
+    __tablename__ = "user"
+    id       = db.Column(db.Integer, primary_key=True)
+    ner      = db.Column(db.String(150), nullable=False)
+    email    = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(256), nullable=False)
 
     def __repr__(self):
         return f"<User {self.ner}>"
@@ -60,7 +55,7 @@ class Question(db.Model):
 class TestSession(db.Model):
     __tablename__ = "test_sessions"
     id            = db.Column(db.Integer, primary_key=True)
-    suragch_id    = db.Column(db.Integer, db.ForeignKey("users.id"))
+    suragch_id    = db.Column(db.Integer, db.ForeignKey("user.id"))
     angi          = db.Column(db.String(5))
     hicheel       = db.Column(db.String(50))
     egneliin_tsag = db.Column(db.DateTime, default=datetime.utcnow)
@@ -84,7 +79,7 @@ class TestAnswer(db.Model):
 class WeakTopic(db.Model):
     __tablename__ = "weak_topics"
     id         = db.Column(db.Integer, primary_key=True)
-    suragch_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    suragch_id = db.Column(db.Integer, db.ForeignKey("user.id"))
     hicheel    = db.Column(db.String(50))
     sedew      = db.Column(db.String(200))
     aldaa_too  = db.Column(db.Integer, default=1)
